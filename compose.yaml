@@ -1,0 +1,92 @@
+name: tavixo
+services:
+  db:
+    image: postgres:17.9-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    volumes:
+      - tavixo_pgdata:/var/lib/postgresql/data
+    networks: [database]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    mem_limit: 512m
+    cpus: 0.75
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      WEB_ORIGIN: ${WEB_ORIGIN:?Set WEB_ORIGIN}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      API_HOST: 0.0.0.0
+      API_PORT: 3000
+    ports: ['127.0.0.1:6000:3000']
+    networks: [database, application]
+    depends_on:
+      db: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    init: true
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 384m
+    cpus: 0.5
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:3000
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      HOSTNAME: 0.0.0.0
+      PORT: 3000
+    ports: ['127.0.0.1:6001:3000']
+    networks: [application]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    init: true
+    security_opt: ['no-new-privileges:true']
+    cap_drop: [ALL]
+    mem_limit: 384m
+    cpus: 0.5
+  tools:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: build
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL}
+      SEED_ADMIN_EMAIL: ${SEED_ADMIN_EMAIL:?Set SEED_ADMIN_EMAIL}
+      SEED_ADMIN_PASSWORD: ${SEED_ADMIN_PASSWORD:?Set SEED_ADMIN_PASSWORD}
+    networks: [database]
+    depends_on:
+      db: { condition: service_healthy }
+    command: [npm, run, db:migrate]
+networks:
+  database:
+    internal: true
+  application:
+volumes:
+  tavixo_pgdata:

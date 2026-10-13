@@ -1,0 +1,92 @@
+import EmbeddedPostgres from 'embedded-postgres';
+import { spawn } from 'node:child_process';
+import { createServer } from 'node:net';
+import { mkdir, mkdtemp, writeFile, open } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
+import { request } from 'node:http';
+import { once } from 'node:events';
+import { fileURLToPath } from 'node:url';
+
+process.chdir(fileURLToPath(new URL('../', import.meta.url)));
+await mkdir('work', { recursive: true });
+async function portFree(port) {
+  const server = createServer();
+  await new Promise((resolve, reject) => { server.once('error', reject); server.listen(port, '127.0.0.1', resolve); });
+  const assigned = server.address().port;
+  await new Promise(resolve => server.close(resolve)); return assigned;
+}
+await portFree(6000); await portFree(6001);
+const port = await portFree(0);
+const directory = await mkdtemp(`${process.cwd()}/work/postgres-`);
+const password = randomBytes(24).toString('hex');
+const url = `postgresql://tavixo:${password}@127.0.0.1:${port}/tavixo_test?schema=public`;
+const env = { ...process.env, DATABASE_URL: url, TEST_DATABASE_URL: url, JWT_SECRET: randomBytes(48).toString('hex'), NODE_ENV: 'test', COOKIE_SECURE: 'false', WEB_ORIGIN: 'http://localhost:6001', API_INTERNAL_URL: 'http://127.0.0.1:6000', API_PORT: '6000', API_HOST: '127.0.0.1', SEED_ADMIN_EMAIL: 'admin@birriaelcachanilla.com.mx', SEED_ADMIN_PASSWORD: randomBytes(24).toString('hex'), NEXT_TELEMETRY_DISABLED: '1' };
+const pgLog = await open('work/postgres.log', 'w');
+const pg = new EmbeddedPostgres({ databaseDir: directory, port, user: 'tavixo', password, persistent: false, authMethod: 'scram-sha-256', postgresFlags: ['-h', '127.0.0.1'], onLog: message => pgLog.write(String(message)), onError: message => pgLog.write(String(message)) });
+const children = [];
+const results = [];
+async function run(args) {
+  console.log(`\nChecking: npm ${args.join(' ')}`);
+  const child = spawn('npm', args, { env, stdio: 'inherit' });
+  const [code] = await once(child, 'exit');
+  if (code !== 0) throw new Error(`npm ${args.join(' ')} failed (${code})`);
+  results.push(`PASS: npm ${args.join(' ')}`);
+}
+function http(path, options = {}) {
+  return new Promise((resolve, reject) => {
+    const req = request(path, options, res => { let data = ''; res.on('data', chunk => data += chunk); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, text: data })); });
+    req.on('error', reject); req.setTimeout(4000, () => req.destroy(new Error('timeout')));
+    req.end(options.body);
+  });
+}
+async function waitReady(url) {
+  for (let i = 0; i < 100; i++) { try { const res = await http(url); if (res.status === 200) return; } catch {} await new Promise(resolve => setTimeout(resolve, 200)); }
+  throw new Error(`Server did not become ready: ${url}`);
+}
+async function server(command, args, filename) {
+  const log = await open(filename, 'w');
+  const child = spawn(command, args, { env, stdio: ['ignore', log.fd, log.fd] });
+  children.push({ child, log }); return child;
+}
+function assert(condition, message) { if (!condition) throw new Error(message); results.push(`PASS: ${message}`); }
+try {
+  await pg.initialise(); await pg.start(); await pg.createDatabase('tavixo_test');
+  await run(['run', 'db:generate']);
+  await run(['run', 'db:migrate']);
+  await run(['run', 'db:migrate']);
+  await run(['run', 'db:seed']); await run(['run', 'db:seed']);
+  await run(['run', 'typecheck']); await run(['test']); await run(['run', 'test:integration']); await run(['run', 'build']);
+  await server('node', ['apps/api/dist/main.js'], 'work/api.log');
+  await waitReady('http://127.0.0.1:6000/api/health');
+  // Run the standalone artifact that Docker uses (static assets copied below).
+  const { cp } = await import('node:fs/promises');
+  await cp('apps/web/public', 'apps/web/.next/standalone/apps/web/public', { recursive: true });
+  await cp('apps/web/.next/static', 'apps/web/.next/standalone/apps/web/.next/static', { recursive: true });
+  env.HOSTNAME = '127.0.0.1'; env.PORT = '6001';
+  await server('node', ['apps/web/.next/standalone/apps/web/server.js'], 'work/web.log');
+  await waitReady('http://127.0.0.1:6001/');
+  const page = await http('http://127.0.0.1:6001/'); assert(page.text.includes('tavixo'), 'web HTML served on 6001');
+  const health = await http('http://127.0.0.1:6001/api/health'); assert(health.status === 200, 'web proxy reaches API and PostgreSQL');
+  for (const path of ['/manifest.webmanifest', '/sw.js', '/offline.html', '/icon-192.png', '/icon-512.png']) {
+    const response = await http(`http://127.0.0.1:6001${path}`); assert(response.status === 200, `PWA asset ${path}`);
+  }
+  const body = JSON.stringify({ email: env.SEED_ADMIN_EMAIL, password: env.SEED_ADMIN_PASSWORD, restaurantSlug: 'birria-el-cachanilla' });
+  const login = await http('http://127.0.0.1:6001/api/auth/login', { method: 'POST', headers: { Origin: env.WEB_ORIGIN, 'Content-Type': 'application/json' }, body });
+  assert(login.status === 201, 'pilot login through web proxy');
+  const auth = JSON.parse(login.text); const cookie = login.headers['set-cookie'][0].split(';')[0];
+  assert(auth.user.role === 'OWNER' && auth.restaurant.name === 'Birria El Cachanilla', 'pilot OWNER membership seeded');
+  const restaurant = await http('http://127.0.0.1:6001/api/restaurant', { headers: { Authorization: `Bearer ${auth.accessToken}` } });
+  assert(restaurant.status === 200, 'authenticated tenant access through web proxy');
+  const refreshed = await http('http://127.0.0.1:6001/api/auth/refresh', { method: 'POST', headers: { Origin: env.WEB_ORIGIN, Cookie: cookie } });
+  assert(refreshed.status === 201, 'cookie refresh through web proxy');
+} catch (error) {
+  results.push(`FAIL: ${error.message}`); process.exitCode = 1; console.error(error);
+} finally {
+  for (const { child, log } of children.reverse()) {
+    if (child.exitCode === null) { child.kill('SIGTERM'); await Promise.race([once(child, 'exit'), new Promise(resolve => setTimeout(resolve, 5000))]); if (child.exitCode === null) child.kill('SIGKILL'); }
+    await log.close();
+  }
+  await pg.stop().catch(error => console.error('PostgreSQL cleanup:', error.message)); await pgLog.close();
+  await writeFile('work/verification.txt', `${new Date().toISOString()}\n${results.join('\n')}\nDocker/Nginx runtime checks not performed by this script.\n`);
+  console.log(results.join('\n'));
+}

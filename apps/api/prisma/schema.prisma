@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  name String
+  passwordHash String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  memberships Membership[]
+}
+model Restaurant {
+  id String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  memberships Membership[]
+}
+model Membership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  restaurantId String @db.Uuid
+  role Role
+  active Boolean @default(true)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions RefreshSession[]
+  @@unique([userId, restaurantId])
+  @@index([restaurantId, active])
+}
+model RefreshSession {
+  id String @id @default(uuid()) @db.Uuid
+  membershipId String @db.Uuid
+  tokenHash String @unique
+  familyId String @db.Uuid
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  @@index([familyId])
+  @@index([expiresAt])
+}

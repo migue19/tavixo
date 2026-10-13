@@ -1,0 +1,30 @@
+{
+  "name": "tavixo",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22 <27"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"npm run dev -w @tavixo/api\" \"npm run dev -w @tavixo/web\"",
+    "build": "npm run db:generate && npm run build -w @tavixo/api && npm run build -w @tavixo/web",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm run test -w @tavixo/api",
+    "test:integration": "npm run test:integration -w @tavixo/api",
+    "verify:local": "node scripts/verify-local.mjs",
+    "db:generate": "npm run db:generate -w @tavixo/api",
+    "db:migrate": "npm run db:migrate -w @tavixo/api",
+    "db:seed": "npm run db:seed -w @tavixo/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "embedded-postgres": "17.9.0-beta.17",
+    "deepmerge-ts": "8.0.2"
+  },
+  "overrides": {
+    "deepmerge-ts": "8.0.2"
+  }
+}
