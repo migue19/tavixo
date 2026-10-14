@@ -147,6 +147,7 @@ model Order {
   items OrderItem[]
   events OrderEvent[]
   payment Payment?
+  rounds OrderRound[]
   @@unique([id, branchId, restaurantId])
   @@unique([branchId, number])
   @@unique([branchId, requestId])
@@ -158,6 +159,8 @@ model OrderItem {
   restaurantId String @db.Uuid
   branchId String @db.Uuid
   productId String @db.Uuid
+  roundId String? @db.Uuid
+  round OrderRound? @relation(fields: [roundId, orderId, branchId, restaurantId], references: [id, orderId, branchId, restaurantId], onDelete: Cascade)
   name String
   quantity Int
   unitPriceCents Int
@@ -199,4 +202,24 @@ model Payment {
   @@unique([orderId, branchId, restaurantId])
   @@unique([branchId, requestId])
   @@index([restaurantId, branchId, createdAt])
+}
+
+model OrderRound {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  number Int
+  status OrderStatus @default(SENT)
+  requestId String @db.Uuid
+  requestHash String
+  notes String @default("")
+  createdByName String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: Cascade)
+  items OrderItem[]
+  @@unique([id, orderId, branchId, restaurantId])
+  @@unique([orderId, number])
+  @@unique([branchId, requestId])
 }

@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import {
   Membership,
+  Order,
   OrderStatus,
   PaymentMethod,
   Prisma,
@@ -14,10 +15,16 @@ import {
 } from "@prisma/client";
 import { createHash } from "node:crypto";
 import { PrismaService } from "./prisma.service";
-import { CreateOrderDto, OrderStatusDto, CreatePaymentDto } from "./orders.dto";
+import {
+  CreateRoundDto,
+  CreateOrderDto,
+  OrderStatusDto,
+  CreatePaymentDto,
+} from "./orders.dto";
 import { Ticket, TicketKind } from "./ticket";
 const include = {
   items: true,
+  rounds: { include: { items: true }, orderBy: { number: "asc" as const } },
   payment: true,
   events: { orderBy: { createdAt: "asc" as const } },
 };
@@ -68,6 +75,260 @@ export class OrdersService {
       if (!member) throw new ForbiddenException();
       await this.branch(tx, member, branchId);
       return fn(tx, member, member.user.name);
+    });
+  }
+  private async ensureFirstRound(tx: Prisma.TransactionClient, order: Order) {
+    let rounds = await tx.orderRound.findMany({
+      where: {
+        orderId: order.id,
+        branchId: order.branchId,
+        restaurantId: order.restaurantId,
+      },
+      orderBy: { number: "asc" },
+    });
+    if (!rounds.length) {
+      const round = await tx.orderRound.create({
+        data: {
+          orderId: order.id,
+          branchId: order.branchId,
+          restaurantId: order.restaurantId,
+          number: 1,
+          status:
+            order.status === OrderStatus.CLOSED
+              ? OrderStatus.DELIVERED
+              : order.status,
+          requestId: order.requestId,
+          requestHash: order.requestHash,
+          notes: order.notes,
+          createdByName: order.createdByName,
+          createdAt: order.createdAt,
+        },
+      });
+      rounds = [round];
+    }
+    await tx.orderItem.updateMany({
+      where: {
+        orderId: order.id,
+        branchId: order.branchId,
+        restaurantId: order.restaurantId,
+        roundId: null,
+      },
+      data: { roundId: rounds[0].id },
+    });
+    return rounds;
+  }
+  private aggregate(statuses: OrderStatus[]): OrderStatus {
+    if (statuses.every((s) => s === OrderStatus.DELIVERED))
+      return OrderStatus.DELIVERED;
+    if (statuses.includes(OrderStatus.SENT)) return OrderStatus.SENT;
+    if (statuses.includes(OrderStatus.PREPARING)) return OrderStatus.PREPARING;
+    return OrderStatus.READY;
+  }
+  private async transitionRound(
+    tx: Prisma.TransactionClient,
+    member: Membership,
+    name: string,
+    order: Order,
+    roundId: string,
+    dto: OrderStatusDto,
+  ) {
+    const admin = this.admin(member);
+    if (
+      ([OrderStatus.PREPARING, OrderStatus.READY].includes(
+        dto.status as "PREPARING" | "READY",
+      ) &&
+        !admin &&
+        member.role !== Role.KITCHEN) ||
+      (dto.status === OrderStatus.DELIVERED &&
+        !admin &&
+        ![Role.WAITER, Role.CASHIER].includes(
+          member.role as "WAITER" | "CASHIER",
+        ))
+    )
+      throw new ForbiddenException("Tu rol no permite ese cambio");
+    if (terminal.includes(order.status as "CLOSED" | "CANCELLED"))
+      throw new ConflictException("La cuenta ya terminó");
+    const round = await tx.orderRound.findFirst({
+      where: {
+        id: roundId,
+        orderId: order.id,
+        branchId: order.branchId,
+        restaurantId: member.restaurantId,
+      },
+    });
+    if (!round) throw new NotFoundException("Ronda no encontrada");
+    if (round.status !== dto.expectedStatus)
+      throw new ConflictException(
+        "La ronda cambió; actualiza antes de continuar",
+      );
+    const next: Partial<Record<OrderStatus, OrderStatus>> = {
+      SENT: OrderStatus.PREPARING,
+      PREPARING: OrderStatus.READY,
+      READY: OrderStatus.DELIVERED,
+    };
+    if (next[round.status] !== dto.status)
+      throw new ConflictException(
+        "Ese cambio no corresponde al estado de la ronda",
+      );
+    await tx.orderRound.update({
+      where: { id: roundId },
+      data: { status: dto.status },
+    });
+    const rounds = await tx.orderRound.findMany({
+      where: { orderId: order.id },
+      select: { status: true },
+    });
+    return tx.order.update({
+      where: { id: order.id },
+      data: {
+        status: this.aggregate(rounds.map((r) => r.status)),
+        events: {
+          create: {
+            status: dto.status,
+            actorName: name,
+            reason: `Ronda ${round.number}`,
+          },
+        },
+      },
+      include,
+    });
+  }
+  roundStatus(
+    actor: Membership,
+    branchId: string,
+    id: string,
+    roundId: string,
+    dto: OrderStatusDto,
+  ) {
+    return this.write(actor, branchId, async (tx, member, name) => {
+      const order = await tx.order.findFirst({
+        where: { id, branchId, restaurantId: member.restaurantId },
+      });
+      if (!order) throw new NotFoundException("Comanda no encontrada");
+      return this.transitionRound(tx, member, name, order, roundId, dto);
+    });
+  }
+  addRound(
+    actor: Membership,
+    branchId: string,
+    id: string,
+    dto: CreateRoundDto,
+  ) {
+    const hash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          orderId: id,
+          expectedTotalCents: dto.expectedTotalCents,
+          notes: dto.notes ?? "",
+          items: dto.items.map((i) => ({
+            productId: i.productId,
+            quantity: i.quantity,
+            notes: i.notes ?? "",
+          })),
+        }),
+      )
+      .digest("hex");
+    return this.write(actor, branchId, async (tx, member, name) => {
+      if (member.role === Role.KITCHEN)
+        throw new ForbiddenException("Cocina no puede agregar rondas");
+      const replay = await tx.orderRound.findUnique({
+        where: { branchId_requestId: { branchId, requestId: dto.requestId } },
+      });
+      if (replay) {
+        if (replay.orderId !== id || replay.requestHash !== hash)
+          throw new ConflictException(
+            "La referencia ya corresponde a otro envío",
+          );
+        return tx.order.findFirstOrThrow({
+          where: { id, branchId, restaurantId: member.restaurantId },
+          include,
+        });
+      }
+      const order = await tx.order.findFirst({
+        where: { id, branchId, restaurantId: member.restaurantId },
+        include: { payment: true },
+      });
+      if (!order) throw new NotFoundException("Comanda no encontrada");
+      if (
+        terminal.includes(order.status as "CLOSED" | "CANCELLED") ||
+        order.payment
+      )
+        throw new ConflictException("La cuenta ya terminó");
+      if (order.totalCents !== dto.expectedTotalCents)
+        throw new ConflictException(
+          "El total cambió; revisa la cuenta antes de agregar productos",
+        );
+      if (
+        (await tx.orderItem.count({ where: { orderId: id } })) +
+          dto.items.length >
+        100
+      )
+        throw new BadRequestException(
+          "La cuenta admite hasta 100 líneas de productos",
+        );
+      if (new Set(dto.items.map((i) => i.productId)).size !== dto.items.length)
+        throw new BadRequestException(
+          "Agrupa cada producto en una sola línea de esta ronda",
+        );
+      const products = await tx.product.findMany({
+        where: {
+          id: { in: dto.items.map((i) => i.productId) },
+          branchId,
+          restaurantId: member.restaurantId,
+          active: true,
+          available: true,
+          category: { active: true },
+        },
+      });
+      if (products.length !== dto.items.length)
+        throw new BadRequestException(
+          "Algún producto está agotado o ya no está en el menú",
+        );
+      const items = dto.items.map((i) => {
+        const p = products.find((p) => p.id === i.productId)!;
+        return {
+          productId: p.id,
+          name: p.name,
+          unitPriceCents: p.priceCents,
+          quantity: i.quantity,
+          notes: i.notes ?? "",
+        };
+      });
+      const totalCents =
+        order.totalCents +
+        items.reduce((n, i) => n + i.quantity * i.unitPriceCents, 0);
+      if (totalCents > 2147483647)
+        throw new BadRequestException("El total excede el límite permitido");
+      const rounds = await this.ensureFirstRound(tx, order);
+      const number = rounds[rounds.length - 1].number + 1;
+      await tx.orderRound.create({
+        data: {
+          orderId: id,
+          branchId,
+          restaurantId: member.restaurantId,
+          number,
+          requestId: dto.requestId,
+          requestHash: hash,
+          createdByName: name,
+          notes: dto.notes ?? "",
+          items: { create: items },
+        },
+      });
+      return tx.order.update({
+        where: { id },
+        data: {
+          totalCents,
+          status: OrderStatus.SENT,
+          events: {
+            create: {
+              status: OrderStatus.SENT,
+              actorName: name,
+              reason: `Ronda ${number} enviada`,
+            },
+          },
+        },
+        include,
+      });
     });
   }
   async list(member: Membership, branchId: string) {
@@ -191,6 +452,12 @@ export class OrdersService {
           );
         return existing;
       }
+      if (
+        await tx.orderRound.findUnique({
+          where: { branchId_requestId: { branchId, requestId: dto.requestId } },
+        })
+      )
+        throw new ConflictException("La referencia ya corresponde a una ronda");
       const table = await tx.diningTable.findFirst({
         where: {
           id: dto.tableId,
@@ -250,7 +517,7 @@ export class OrdersService {
         where: { branchId },
         _max: { number: true },
       });
-      return tx.order.create({
+      const order = await tx.order.create({
         data: {
           restaurantId: member.restaurantId,
           branchId,
@@ -267,6 +534,8 @@ export class OrdersService {
         },
         include,
       });
+      await this.ensureFirstRound(tx, order);
+      return tx.order.findUniqueOrThrow({ where: { id: order.id }, include });
     });
   }
   pay(actor: Membership, branchId: string, id: string, dto: CreatePaymentDto) {
@@ -312,6 +581,9 @@ export class OrdersService {
         throw new ConflictException(
           "La cuenta debe estar entregada y sin cobro registrado",
         );
+      const rounds = await this.ensureFirstRound(tx, order);
+      if (!rounds.every((r) => r.status === OrderStatus.DELIVERED))
+        throw new ConflictException("Entrega todas las rondas antes de cobrar");
       if (dto.expectedTotalCents !== order.totalCents)
         throw new ConflictException(
           "El total cambió; revisa la cuenta antes de cobrar",
@@ -408,6 +680,16 @@ export class OrdersService {
         throw new ConflictException(
           "Ese cambio no corresponde al estado actual",
         );
+      const rounds = await this.ensureFirstRound(tx, order);
+      if (dto.status !== OrderStatus.CANCELLED) {
+        if (rounds.length !== 1)
+          throw new ConflictException("Actualiza cada ronda por separado");
+        return this.transitionRound(tx, member, name, order, rounds[0].id, dto);
+      }
+      await tx.orderRound.updateMany({
+        where: { orderId: id, status: { not: OrderStatus.DELIVERED } },
+        data: { status: OrderStatus.CANCELLED },
+      });
       return tx.order.update({
         where: { id },
         data: {

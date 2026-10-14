@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum Role {
+  OWNER
+  MANAGER
+  CASHIER
+  WAITER
+  KITCHEN
+}
+model User {
+  id String @id @default(uuid()) @db.Uuid
+  email String @unique
+  name String
+  passwordHash String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  memberships Membership[]
+}
+model Restaurant {
+  id String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  memberships Membership[]
+  branches Branch[]
+}
+model Branch {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  name String
+  address String @default("")
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  categories MenuCategory[]
+  products Product[]
+  tables DiningTable[]
+  orders Order[]
+  @@unique([id, restaurantId])
+  @@unique([restaurantId, name])
+  @@index([restaurantId, active])
+}
+model Membership {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String? @db.Uuid
+  branch Branch? @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Restrict)
+  role Role
+  active Boolean @default(true)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  sessions RefreshSession[]
+  @@unique([userId, restaurantId])
+  @@index([restaurantId, active])
+}
+model RefreshSession {
+  id String @id @default(uuid()) @db.Uuid
+  membershipId String @db.Uuid
+  tokenHash String @unique
+  familyId String @db.Uuid
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime @default(now())
+  membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  @@index([familyId])
+  @@index([expiresAt])
+}
+
+model MenuCategory {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  name String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  products Product[]
+  @@unique([id, branchId, restaurantId])
+  @@unique([branchId, name])
+}
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  categoryId String @db.Uuid
+  name String
+  description String @default("")
+  priceCents Int
+  active Boolean @default(true)
+  available Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  orderItems OrderItem[]
+  category MenuCategory @relation(fields: [categoryId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+  @@unique([id, branchId, restaurantId])
+  @@unique([branchId, name])
+  @@index([restaurantId, branchId, active])
+}
+model DiningTable {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  name String
+  orders Order[]
+  capacity Int @default(4)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  @@unique([id, branchId, restaurantId])
+  @@unique([branchId, name])
+  @@index([restaurantId, branchId, active])
+}
+
+enum OrderStatus {
+  SENT
+  PREPARING
+  READY
+  DELIVERED
+  CLOSED
+  CANCELLED
+}
+model Order {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  tableId String @db.Uuid
+  number Int
+  tableName String
+  createdByName String
+  requestId String @db.Uuid
+  requestHash String
+  status OrderStatus @default(SENT)
+  totalCents Int
+  notes String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  table DiningTable @relation(fields: [tableId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+  items OrderItem[]
+  events OrderEvent[]
+  payment Payment?
+  @@unique([id, branchId, restaurantId])
+  @@unique([branchId, number])
+  @@unique([branchId, requestId])
+  @@index([restaurantId, branchId, status])
+}
+model OrderItem {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  productId String @db.Uuid
+  name String
+  quantity Int
+  unitPriceCents Int
+  notes String @default("")
+  order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: Cascade)
+  product Product @relation(fields: [productId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+}
+model OrderEvent {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @db.Uuid
+  branchId String @db.Uuid
+  restaurantId String @db.Uuid
+  status OrderStatus
+  actorName String
+  reason String @default("")
+  createdAt DateTime @default(now())
+  order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: Cascade)
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @unique @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  requestId String @db.Uuid
+  requestHash String
+  method PaymentMethod
+  amountCents Int
+  receivedCents Int
+  changeCents Int
+  reference String @default("")
+  actorName String
+  createdAt DateTime @default(now())
+  order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+  @@unique([orderId, branchId, restaurantId])
+  @@unique([branchId, requestId])
+  @@index([restaurantId, branchId, createdAt])
+}

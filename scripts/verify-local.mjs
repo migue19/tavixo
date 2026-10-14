@@ -280,6 +280,41 @@ try {
         ],
       );
     }
+    await cp(
+      "apps/api/test/fixtures/schema-sprint6.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    await cp(
+      "apps/api/prisma/migrations/20261014030000_payments",
+      "work/upgrade/migrations/20261014030000_payments",
+      { recursive: true },
+    );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const legacyPayment = randomUUID();
+    await client.query(
+      'INSERT INTO "Payment" (id,"orderId","restaurantId","branchId","requestId","requestHash",method,"amountCents","receivedCents","changeCents","actorName") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)',
+      [
+        legacyPayment,
+        legacyOrders[1],
+        legacy.restaurant,
+        legacyBranch,
+        randomUUID(),
+        "b".repeat(64),
+        "CASH",
+        5800,
+        6000,
+        200,
+        "Legacy owner",
+      ],
+    );
     await run(["run", "db:migrate"]);
     const preservedOrders = await client.query(
       'SELECT o.status,o."totalCents",i.quantity,i."unitPriceCents",p.id AS payment FROM "Order" o JOIN "OrderItem" i ON i."orderId"=o.id LEFT JOIN "Payment" p ON p."orderId"=o.id WHERE o."restaurantId"=$1 ORDER BY o.number',
@@ -294,9 +329,22 @@ try {
             o.totalCents === 5800 &&
             o.quantity === 2 &&
             o.unitPriceCents === 2900 &&
-            o.payment === null,
+            (o.status === "DELIVERED"
+              ? o.payment === null
+              : o.payment === legacyPayment),
         ),
-      "Sprint 4 upgrade preserves delivered/closed orders and prices without inventing payments",
+      "Sprint 6 upgrade preserves delivered/closed orders, prices and existing payment",
+    );
+    const linkedRounds = await client.query(
+      'SELECT r.number,r.status,i."roundId" FROM "OrderRound" r JOIN "OrderItem" i ON i."roundId"=r.id AND i."orderId"=r."orderId" WHERE r."restaurantId"=$1',
+      [legacy.restaurant],
+    );
+    assert(
+      linkedRounds.rows.length === 2 &&
+        linkedRounds.rows.every(
+          (r) => r.number === 1 && r.status === "DELIVERED" && r.roundId,
+        ),
+      "Sprint 7 backfills first rounds and links legacy lines without changing totals",
     );
     const catalogPreserved = await client.query(
       'SELECT p.name,p."priceCents",p.available,t.capacity FROM "Product" p JOIN "DiningTable" t ON t."branchId"=p."branchId" WHERE p.id=$1 AND t.id=$2',
@@ -322,6 +370,9 @@ try {
         upgraded.rows[0].session === legacy.session,
       "Sprint 1 upgrade preserves credentials, roles and sessions and backfills the main branch",
     );
+    await client.query('DELETE FROM "Payment" WHERE "restaurantId"=$1', [
+      legacy.restaurant,
+    ]);
     await client.query('DELETE FROM "Order" WHERE "restaurantId"=$1', [
       legacy.restaurant,
     ]);

@@ -1261,6 +1261,10 @@ async function paymentFixture() {
     where: { id: order.body.id },
     data: { status: "DELIVERED" },
   });
+  await db.orderRound.updateMany({
+    where: { orderId: order.body.id },
+    data: { status: "DELIVERED" },
+  });
   return {
     ...f,
     order: order.body,
@@ -1421,6 +1425,10 @@ it("handles concurrent payments exactly once and protects database amounts and t
     .expect(201);
   await db.order.update({
     where: { id: second.body.id },
+    data: { status: "DELIVERED" },
+  });
+  await db.orderRound.updateMany({
+    where: { orderId: second.body.id },
     data: { status: "DELIVERED" },
   });
   const nextPath = `${f.base}/${second.body.id}/payment`;
@@ -1597,4 +1605,215 @@ it("renders long digital accounts across PDF pages and preserves Spanish names a
   assert.equal(receipt.body.payment.reference, "DEMO-TICKET");
   assert.equal(receipt.body.payment.amountCents, 8700);
   assert.equal(receipt.body.payment.changeCents, 0);
+});
+
+it("adds priced rounds without resending delivered products and waits for every delivery before payment", async () => {
+  const f = await paymentFixture();
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { priceCents: 4300, name: "Taco grande" },
+  });
+  const body = {
+    requestId: randomUUID(),
+    expectedTotalCents: 8700,
+    notes: "Segunda ronda",
+    items: [{ productId: f.product.id, quantity: 2, notes: "Con todo" }],
+  };
+  const path = `${f.base}/${f.order.id}/rounds`;
+  const added = await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.staff.WAITER)
+    .send(body)
+    .expect(201);
+  assert.equal(added.body.totalCents, 17300);
+  assert.equal(added.body.rounds[0].status, "DELIVERED");
+  assert.equal(added.body.rounds[0].items[0].unitPriceCents, 2900);
+  assert.equal(added.body.rounds[1].items[0].unitPriceCents, 4300);
+  assert.equal(added.body.rounds[1].items[0].name, "Taco grande");
+  assert.equal(added.body.status, "SENT");
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({ ...f.payment, expectedTotalCents: 17300, receivedCents: 20000 })
+    .expect(409);
+  const roundPath = `${path}/${added.body.rounds[1].id}/status`;
+  for (const [expectedStatus, status, role] of [
+    ["SENT", "PREPARING", "KITCHEN"],
+    ["PREPARING", "READY", "KITCHEN"],
+    ["READY", "DELIVERED", "WAITER"],
+  ]) {
+    await request(app.getHttpServer())
+      .patch(roundPath)
+      .set("Authorization", f.staff[role])
+      .send({ expectedStatus, status })
+      .expect(200);
+  }
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({ ...f.payment, expectedTotalCents: 17300, receivedCents: 20000 })
+    .expect(201);
+  assert.equal(paid.body.payment.changeCents, 2700);
+  const ticket = await request(app.getHttpServer())
+    .get(`${f.base}/${f.order.id}/ticket?kind=PAYMENT`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(ticket.body.order.totalCents, 17300);
+  assert.equal(ticket.body.order.items.length, 2);
+  const retry = await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.staff.WAITER)
+    .send(body)
+    .expect(201);
+  assert.equal(retry.body.rounds.length, 2);
+  assert.equal(retry.body.status, "CLOSED");
+});
+
+it("serializes duplicate and competing rounds and rejects stale totals and reused requests", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/rounds`;
+  const body = {
+    requestId: randomUUID(),
+    expectedTotalCents: 8700,
+    items: [{ productId: f.product.id, quantity: 1 }],
+  };
+  const send = (data: object) =>
+    request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", f.auth)
+      .send(data);
+  const repeats = await Promise.all([send(body), send(body)]);
+  assert.deepEqual(
+    repeats.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(repeats[0].body.totalCents, 11600);
+  assert.equal(repeats[1].body.rounds.length, 2);
+  await send({
+    ...body,
+    items: [{ productId: f.product.id, quantity: 2 }],
+  }).expect(409);
+  await send({ ...body, requestId: randomUUID() }).expect(409);
+  const races = await Promise.all([
+    send({ ...body, requestId: randomUUID(), expectedTotalCents: 11600 }),
+    send({ ...body, requestId: randomUUID(), expectedTotalCents: 11600 }),
+  ]);
+  assert.deepEqual(races.map((r) => r.status).sort(), [201, 409]);
+  assert.equal(
+    await db.orderRound.count({ where: { orderId: f.order.id } }),
+    3,
+  );
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, tableId: f.table2.id, requestId: body.requestId })
+    .expect(409);
+});
+
+it("rejects foreign, unavailable and unauthorized rounds and preserves terminal accounts", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/rounds`;
+  const body = {
+    requestId: randomUUID(),
+    expectedTotalCents: 8700,
+    items: [{ productId: f.product.id, quantity: 1 }],
+  };
+  const send = (data: object, auth = f.auth) =>
+    request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", auth)
+      .send(data);
+  await send(body, f.staff.KITCHEN).expect(403);
+  await send({
+    ...body,
+    items: [{ productId: f.foreignProduct.id, quantity: 1 }],
+  }).expect(400);
+  await send({ ...body, items: [body.items[0], body.items[0]] }).expect(400);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { available: false },
+  });
+  await send(body).expect(400);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { available: true },
+  });
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  await send(body).expect(409);
+  assert.equal(
+    await db.orderRound.count({ where: { orderId: f.order.id } }),
+    1,
+  );
+});
+
+it("round transitions enforce roles and isolate rounds belonging to another account", async () => {
+  const f = await paymentFixture();
+  const second = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID(), tableId: f.table2.id })
+    .expect(201);
+  const round = second.body.rounds[0];
+  const patch = (orderId: string, auth: string, data: object) =>
+    request(app.getHttpServer())
+      .patch(`${f.base}/${orderId}/rounds/${round.id}/status`)
+      .set("Authorization", auth)
+      .send(data);
+  await patch(f.order.id, f.auth, {
+    expectedStatus: "SENT",
+    status: "PREPARING",
+  }).expect(404);
+  await patch(second.body.id, f.staff.WAITER, {
+    expectedStatus: "SENT",
+    status: "PREPARING",
+  }).expect(403);
+  await patch(second.body.id, f.staff.KITCHEN, {
+    expectedStatus: "SENT",
+    status: "DELIVERED",
+  }).expect(403);
+  await patch(second.body.id, f.staff.KITCHEN, {
+    expectedStatus: "SENT",
+    status: "PREPARING",
+  }).expect(200);
+  await patch(second.body.id, f.staff.KITCHEN, {
+    expectedStatus: "SENT",
+    status: "PREPARING",
+  }).expect(409);
+});
+
+it("makes concurrent payment and new round mutually exclusive without losing products or money", async () => {
+  const f = await paymentFixture();
+  const results = await Promise.all([
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(f.payment),
+    request(app.getHttpServer())
+      .post(`${f.base}/${f.order.id}/rounds`)
+      .set("Authorization", f.staff.WAITER)
+      .send({
+        requestId: randomUUID(),
+        expectedTotalCents: 8700,
+        items: [{ productId: f.product.id, quantity: 1 }],
+      }),
+  ]);
+  assert.deepEqual(results.map((r) => r.status).sort(), [201, 409]);
+  const order = await db.order.findUniqueOrThrow({
+    where: { id: f.order.id },
+    include: { payment: true, rounds: true, items: true },
+  });
+  if (order.payment) {
+    assert.equal(order.status, "CLOSED");
+    assert.equal(order.totalCents, 8700);
+    assert.equal(order.rounds.length, 1);
+  } else {
+    assert.equal(order.status, "SENT");
+    assert.equal(order.totalCents, 11600);
+    assert.equal(order.rounds.length, 2);
+    assert.equal(order.items.length, 2);
+  }
 });

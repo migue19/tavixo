@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Rounds, { type Round } from "./rounds";
 import TicketPanel from "./ticket";
 import PaymentPanel, { type Payment } from "./payment";
 import type { Session } from "./management";
@@ -16,11 +17,14 @@ type Table = { id: string; name: string; active: boolean };
 type Line = { productId: string; quantity: number; notes: string };
 type Payload = {
   requestId: string;
-  tableId: string;
+  tableId?: string;
+  orderId?: string;
+  expectedTotalCents?: number;
   notes: string;
   items: Line[];
 };
 export type Order = {
+  rounds: Round[];
   payment: Payment | null;
   id: string;
   number: number;
@@ -76,6 +80,8 @@ export default function Orders({
   const [tables, setTables] = useState<Table[]>([]);
   const [cart, setCart] = useState<Line[]>([]);
   const [tableId, setTableId] = useState("");
+  const [targetOrderId, setTargetOrderId] = useState("");
+  const composeRef = useRef<HTMLDivElement>(null);
   const [notes, setNotes] = useState("");
   const [search, setSearch] = useState("");
   const [error, setError] = useState("");
@@ -142,6 +148,7 @@ export default function Orders({
     setCart([]);
     setNotes("");
     setTableId("");
+    setTargetOrderId("");
     setError("");
     setNotice("");
     try {
@@ -186,13 +193,25 @@ export default function Orders({
     orders.filter((o) => !finished(o)).map((o) => o.tableId),
   );
   const disabled = busy || loading || !online;
+  const targetOrder = orders.find(
+    (o) => o.id === targetOrderId && !finished(o),
+  );
   async function submit() {
     if (disabled) return;
-    const payload = pending ?? {
+    if (!pending && targetOrderId && !targetOrder) {
+      setError("La cuenta ya no está abierta; actualiza antes de enviar");
+      return;
+    }
+    const payload: Payload = pending ?? {
       requestId: crypto.randomUUID(),
-      tableId,
       notes,
       items: cart,
+      ...(targetOrder
+        ? {
+            orderId: targetOrder.id,
+            expectedTotalCents: targetOrder.totalCents,
+          }
+        : { tableId }),
     };
     // Keep the exact request across a lost response, navigation or reload.
     try {
@@ -208,13 +227,21 @@ export default function Orders({
     setError("");
     setNotice("");
     try {
-      const order: Order = await api("orders", "POST", payload);
+      const { orderId, ...body } = payload;
+      const order: Order = await api(
+        orderId ? `orders/${orderId}/rounds` : "orders",
+        "POST",
+        body,
+      );
       sessionStorage.removeItem(storageKey);
       setPending(null);
       setCart([]);
       setTableId("");
       setNotes("");
-      setNotice(`Comanda #${order.number} enviada a cocina`);
+      setTargetOrderId("");
+      setNotice(
+        `Comanda #${order.number}: ${payload.orderId ? "nueva ronda enviada" : "enviada"} a cocina`,
+      );
       const [o, p, t] = await load();
       setOrders(o);
       setProducts(p);
@@ -256,6 +283,26 @@ export default function Orders({
       setConfirmation(null);
       setReason("");
       setNotice(`Comanda #${order.number}: ${labels[status]}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Revisa tu conexión");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function changeRound(order: Order, round: Round, status: string) {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const next: Order = await api(
+        `orders/${order.id}/rounds/${round.id}/status`,
+        "PATCH",
+        { status, expectedStatus: round.status },
+      );
+      setOrders((current) => current.map((o) => (o.id === next.id ? next : o)));
+      setNotice(
+        `Comanda #${order.number} · Ronda ${round.number}: ${labels[status]}`,
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : "Revisa tu conexión");
     } finally {
@@ -319,7 +366,7 @@ export default function Orders({
       )}
       {loading && branchId && <p role="status">Cargando comandas…</p>}
       {!kitchen && floor && branchId && (
-        <div className="management-grid order-compose">
+        <div className="management-grid order-compose" ref={composeRef}>
           <article className="card">
             <h3>Seleccionar productos</h3>
             <label>
@@ -380,7 +427,7 @@ export default function Orders({
             )}
           </article>
           <article className="card">
-            <h3>Nueva comanda</h3>
+            <h3>{targetOrderId ? "Agregar una ronda" : "Nueva comanda"}</h3>
             {pending ? (
               <>
                 <p className="alert">
@@ -390,7 +437,8 @@ export default function Orders({
                 <p>
                   {pending.items.reduce((n, i) => n + i.quantity, 0)} productos
                   ·{" "}
-                  {tables.find((t) => t.id === pending.tableId)?.name ??
+                  {orders.find((o) => o.id === pending.orderId)?.tableName ??
+                    tables.find((t) => t.id === pending.tableId)?.name ??
                     "Mesa seleccionada"}
                 </p>
                 <button disabled={disabled} onClick={submit}>
@@ -400,29 +448,55 @@ export default function Orders({
             ) : (
               <>
                 <label>
-                  Mesa
+                  Destino del pedido
                   <select
-                    value={tableId}
+                    value={targetOrderId}
                     disabled={disabled}
-                    onChange={(e) => setTableId(e.target.value)}
+                    onChange={(e) => setTargetOrderId(e.target.value)}
                   >
-                    <option value="">Seleccionar mesa libre</option>
-                    {tables
-                      .filter((t) => t.active)
-                      .map((t) => (
-                        <option
-                          key={t.id}
-                          value={t.id}
-                          disabled={occupied.has(t.id)}
-                        >
-                          {t.name}
-                          {occupied.has(t.id) ? " · Ocupada" : " · Libre"}
+                    <option value="">Nueva cuenta</option>
+                    {orders
+                      .filter((o) => !finished(o))
+                      .map((o) => (
+                        <option key={o.id} value={o.id}>
+                          #{o.number} · {o.tableName} · {money(o.totalCents)}
                         </option>
                       ))}
                   </select>
                 </label>
-                {!loading && !tables.some((t) => t.active) && (
-                  <p>Crea tus mesas en la pestaña Mesas.</p>
+                {targetOrderId ? (
+                  <p>
+                    {targetOrder?.tableName} · Cuenta actual:{" "}
+                    {money(targetOrder?.totalCents ?? 0)}
+                  </p>
+                ) : (
+                  <>
+                    <label>
+                      Mesa
+                      <select
+                        value={tableId}
+                        disabled={disabled}
+                        onChange={(e) => setTableId(e.target.value)}
+                      >
+                        <option value="">Seleccionar mesa libre</option>
+                        {tables
+                          .filter((t) => t.active)
+                          .map((t) => (
+                            <option
+                              key={t.id}
+                              value={t.id}
+                              disabled={occupied.has(t.id)}
+                            >
+                              {t.name}
+                              {occupied.has(t.id) ? " · Ocupada" : " · Libre"}
+                            </option>
+                          ))}
+                      </select>
+                    </label>
+                    {!loading && !tables.some((t) => t.active) && (
+                      <p>Crea tus mesas en la pestaña Mesas.</p>
+                    )}
+                  </>
                 )}
                 <ul>
                   {cart.map((l) => {
@@ -485,7 +559,7 @@ export default function Orders({
                   />
                 </label>
                 <p className="order-total">
-                  Total estimado{" "}
+                  {targetOrderId ? "Nueva ronda estimada" : "Total estimado"}{" "}
                   <strong>
                     {money(
                       cart.reduce(
@@ -502,7 +576,7 @@ export default function Orders({
                 <button
                   disabled={
                     disabled ||
-                    !tableId ||
+                    (targetOrderId ? !targetOrder : !tableId) ||
                     !cart.length ||
                     cart.some(
                       (l) =>
@@ -513,7 +587,9 @@ export default function Orders({
                   }
                   onClick={submit}
                 >
-                  Enviar a cocina
+                  {targetOrderId
+                    ? "Enviar nueva ronda a cocina"
+                    : "Enviar a cocina"}
                 </button>
               </>
             )}
@@ -547,25 +623,38 @@ export default function Orders({
               })}{" "}
               · {order.createdByName}
             </p>
-            <ul>
-              {order.items.map((i) => (
-                <li key={i.id}>
-                  <strong>
-                    {i.quantity} × {i.name}
-                  </strong>
-                  <span className="line-price">
-                    {money(i.unitPriceCents * i.quantity)}
-                  </span>
-                  {i.notes && <p className="order-note">{i.notes}</p>}
-                </li>
-              ))}
-            </ul>
+            {order.rounds.length > 0 ? (
+              <Rounds
+                rounds={order.rounds}
+                kitchen={kitchen}
+                cook={cook}
+                floor={floor}
+                disabled={disabled}
+                onStatus={(round, status) =>
+                  void changeRound(order, round, status)
+                }
+              />
+            ) : (
+              <ul>
+                {order.items.map((i) => (
+                  <li key={i.id}>
+                    <strong>
+                      {i.quantity} × {i.name}
+                    </strong>
+                    <span className="line-price">
+                      {money(i.unitPriceCents * i.quantity)}
+                    </span>
+                    {i.notes && <p className="order-note">{i.notes}</p>}
+                  </li>
+                ))}
+              </ul>
+            )}
             {order.notes && <p className="order-note">{order.notes}</p>}
             <p className="order-total">
               Total <strong>{money(order.totalCents)}</strong>
             </p>
             <div className="actions">
-              {cook && order.status === "SENT" && (
+              {!order.rounds.length && cook && order.status === "SENT" && (
                 <button
                   disabled={disabled}
                   onClick={() => change(order, "PREPARING")}
@@ -573,7 +662,7 @@ export default function Orders({
                   Comenzar preparación
                 </button>
               )}
-              {cook && order.status === "PREPARING" && (
+              {!order.rounds.length && cook && order.status === "PREPARING" && (
                 <button
                   disabled={disabled}
                   onClick={() => change(order, "READY")}
@@ -581,12 +670,24 @@ export default function Orders({
                   Marcar lista
                 </button>
               )}
-              {floor && order.status === "READY" && (
+              {!order.rounds.length && floor && order.status === "READY" && (
                 <button
                   disabled={disabled}
                   onClick={() => change(order, "DELIVERED")}
                 >
                   Registrar entrega
+                </button>
+              )}
+              {floor && !kitchen && !finished(order) && (
+                <button
+                  disabled={disabled || !!pending}
+                  className="secondary"
+                  onClick={() => {
+                    setTargetOrderId(order.id);
+                    composeRef.current?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  Agregar productos
                 </button>
               )}
               {admin && !finished(order) && (

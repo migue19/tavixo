@@ -11,3 +11,21 @@ textarea{display:block;width:100%;font:inherit;font-size:15px;margin-top:9px;pad
 .payment-panel{margin-top:20px;border-top:1px solid #e0e6dd;padding-top:20px}.payment-receipt{background:#edf5e9;border-radius:12px;padding:18px;margin-top:20px}.payment-receipt h4{margin-top:0}.payment-receipt dl>div{display:flex;justify-content:space-between;gap:16px;margin-top:12px}.payment-receipt dd{margin:0;text-align:right;overflow-wrap:anywhere}.check-label{display:flex;align-items:center;gap:10px;line-height:1.5}.check-label input{width:18px;height:18px;margin:0}
 
 .ticket-panel{border-top:1px solid #e0e6dd;margin-top:20px;padding-top:4px}.digital-ticket{background:#fff;border:1px dashed #c4cbbf;border-radius:4px;padding:20px;margin-top:22px;font-size:13px;line-height:1.5;overflow-wrap:anywhere;color:#172d25}.digital-ticket h4{font-size:20px;text-align:center;margin:0}.digital-ticket h5{font-size:16px;text-align:center;margin:18px 0 12px}.digital-ticket p{font-size:13px;color:inherit;line-height:1.6}.ticket-center{text-align:center}.digital-ticket .ticket-notice{background:#fff1d9;text-align:center;padding:8px;font-weight:bold}.digital-ticket .ticket-paid{background:#e4f0e2}.ticket-line{display:flex;justify-content:space-between;gap:14px;align-items:flex-start}.ticket-line span{white-space:nowrap}.digital-ticket li{padding:12px 0}.digital-ticket small{font-size:11px}.ticket-total{border-top:1px dashed #c4cbbf;padding-top:15px;font-size:16px!important}.ticket-payment{border-top:1px dashed #c4cbbf;margin-bottom:15px}.ticket-panel .actions button{font-size:12px}
+
+.order-round {
+  border: 1px solid #dce4da;
+  background: #fafbf8;
+  border-radius: 12px;
+  padding: 15px;
+  margin: 18px 0;
+}
+.order-round h4 {
+  margin: 0;
+  font-size: 17px;
+}
+.order-round > p {
+  font-size: 12px;
+}
+.order-round .actions button {
+  margin-top: 6px;
+}

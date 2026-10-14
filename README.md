@@ -1,4 +1,4 @@
-# Tavixo · Sprint 6
+# Tavixo · Sprint 7
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,24 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Rondas del Sprint 7
+
+Desde **Comandas**, pulsa **Agregar productos** en una cuenta abierta o selecciónala en **Destino del pedido**. Agrega los productos y pulsa **Enviar nueva ronda a cocina**. La misma mesa conserva una sola cuenta y un total acumulado.
+
+- Cada ronda tiene sus propios productos, indicaciones y estados: Enviada → En preparación → Lista → Entregada. Cocina muestra solamente rondas pendientes; los productos ya entregados no se vuelven a preparar.
+- Cada línea conserva el nombre y precio vigente al enviarse. Cambiar el menú no modifica rondas anteriores. Los tickets incluyen todas las líneas y el total acumulado.
+- OWNER/MANAGER/WAITER/CASHIER pueden agregar productos. Cocina prepara y marca lista; piso registra entrega. Sólo se puede cobrar cuando todas las rondas estén entregadas.
+- Reintentos del mismo envío no duplican productos. El servidor valida el total esperado y serializa cobros, cambios de estado y nuevas rondas; ante un conflicto se actualiza la cuenta antes de continuar.
+- Hasta 100 líneas por cuenta y cantidades de 1 a 100 por línea; un producto puede repetirse en diferentes rondas. No se agregan productos a cuentas cerradas/canceladas ni productos agotados o inactivos.
+- La cancelación administrativa sigue siendo de la cuenta completa, con motivo. No hay edición, eliminación o cancelación individual de líneas/rondas en este sprint.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| POST | /api/restaurant/branches/:branchId/orders/:id/rounds | Añadir ronda: requestId UUID, expectedTotalCents, items y notes opcionales |
+| PATCH | /api/restaurant/branches/:branchId/orders/:id/rounds/:roundId/status | Avanzar ronda con status y expectedStatus |
+
+Migración aditiva `20261014040000_rounds`: crea la primera ronda de cuentas anteriores y enlaza sus líneas sin cambiar precios, totales, eventos ni pagos. Las cuentas históricas cerradas siguen sin recibir pagos ficticios. Requiere respaldo y autorización de despliegue. No eliminar las tablas/columnas nuevas para revertir: conservar datos y evaluar el estado de las cuentas con varias rondas antes de regresar a una aplicación anterior. El modelo permite líneas antiguas sin ronda y las enlaza al reanudar una escritura con Sprint 7.
 
 ## Tickets digitales del Sprint 6
 

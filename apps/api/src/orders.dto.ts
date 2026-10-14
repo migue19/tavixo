@@ -61,3 +61,19 @@ export class CreatePaymentDto {
   @Length(0, 80)
   reference?: string;
 }
+
+export class CreateRoundDto {
+  @IsUUID("4") requestId!: string;
+  @IsInt() @Min(0) @Max(2147483647) expectedTotalCents!: number;
+  @ValidateIf((_o, v) => v !== undefined)
+  @Transform(trim)
+  @IsString()
+  @Length(0, 500)
+  notes?: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(100)
+  @ValidateNested({ each: true })
+  @Type(() => OrderLineDto)
+  items!: OrderLineDto[];
+}

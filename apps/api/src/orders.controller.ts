@@ -14,7 +14,12 @@ import {
 } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { AuthGuard, Roles, TenantRequest } from "./auth.guard";
-import { CreateOrderDto, OrderStatusDto, CreatePaymentDto } from "./orders.dto";
+import {
+  CreateRoundDto,
+  CreateOrderDto,
+  OrderStatusDto,
+  CreatePaymentDto,
+} from "./orders.dto";
 import { OrdersService } from "./orders.service";
 import { Response } from "express";
 import { TicketQuery, ticketPdf } from "./ticket";
@@ -67,6 +72,26 @@ export class OrdersController {
     @Body() dto: CreateOrderDto,
   ) {
     return this.orders.create(req.member, branch, dto);
+  }
+  @Post(":id/rounds")
+  @Roles(Role.OWNER, Role.MANAGER, Role.WAITER, Role.CASHIER)
+  addRound(
+    @Req() req: TenantRequest,
+    @Param("branchId", uuid()) branch: string,
+    @Param("id", uuid()) id: string,
+    @Body() dto: CreateRoundDto,
+  ) {
+    return this.orders.addRound(req.member, branch, id, dto);
+  }
+  @Patch(":id/rounds/:roundId/status")
+  roundStatus(
+    @Req() req: TenantRequest,
+    @Param("branchId", uuid()) branch: string,
+    @Param("id", uuid()) id: string,
+    @Param("roundId", uuid()) roundId: string,
+    @Body() dto: OrderStatusDto,
+  ) {
+    return this.orders.roundStatus(req.member, branch, id, roundId, dto);
   }
   @Post(":id/payment")
   @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER)

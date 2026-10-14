@@ -67,7 +67,13 @@ export default function TicketPanel({
     return () => {
       generation.current++;
     };
-  }, [order.id, order.status, order.payment?.id]);
+  }, [
+    order.id,
+    order.status,
+    order.payment?.id,
+    order.totalCents,
+    order.items.length,
+  ]);
   async function request(kind: Kind, pdf = false) {
     const res = await fetch(
       `/api/restaurant/branches/${branchId}/orders/${order.id}/ticket${pdf ? ".pdf" : ""}?kind=${kind}`,
