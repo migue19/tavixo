@@ -7,3 +7,9 @@ node_modules
 **/.env
 work
 coverage
+
+# Private deployment data
+admin-access.txt
+backups/
+*.dump
+*.tar

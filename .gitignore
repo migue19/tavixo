@@ -8,3 +8,9 @@ coverage/
 work/
 *.log
 *.tsbuildinfo
+
+# Private deployment data
+admin-access.txt
+backups/
+*.dump
+*.tar

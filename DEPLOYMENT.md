@@ -2,7 +2,7 @@
 
 Fecha: 2026-10-13 18:05 (America/Mexico_City).
 
-Estado: servicios desplegados y verificados en el VPS; HTTPS público pendiente de conectividad al puerto 80 para emitir el certificado.
+Estado: despliegue completo; acceso público HTTPS verificado en https://app.birriaelcachanilla.com.mx.
 
 ## Instalación
 
@@ -23,23 +23,14 @@ Las imágenes se construyeron con Node 24 en Ubuntu 24.04. Prueba de contraseña
 
 Los 16 contenedores anteriores conservan sus IDs, tiempos de arranque y estado activo. Todos sus archivos Nginx anteriores conservan sus hashes. Cuatro sitios UI existentes mantienen HTTP 200. `scada_backend` ya estaba no saludable antes de este trabajo y no se modificó.
 
-## HTTPS pendiente
+## HTTPS público
 
-Dominio: `app.birriaelcachanilla.com.mx`. DNS A confirmado en resolutores públicos. Puerto 443 accesible externamente; puerto 80 devuelve timeout. UFW inactivo y política INPUT local ACCEPT. Let’s Encrypt HTTP-01 falló por timeout al conectar al puerto 80; revisar firewall o filtrado de red del proveedor. No abrir los puertos 6000/6001 ni PostgreSQL.
+URL: https://app.birriaelcachanilla.com.mx. DNS A configurado y firewall del proveedor sincronizado para TCP 80. El dominio principal continúa en su hosting anterior.
 
-El vhost nuevo `/etc/nginx/sites-available/tavixo` está enlazado, validado con `nginx -t` y en mantenimiento HTTP 503. Los sitios previos no fueron editados. El vhost HTTPS final está preparado en `/opt/tavixo/tavixo-https.conf` y no se habilita hasta tener el certificado.
+Certificado Let’s Encrypt válido hasta el 11 de enero de 2027. Vhost propio habilitado y validado con `nginx -t`; HTTP redirige a HTTPS con 301. La ruta webroot ACME responde públicamente. `/opt/tavixo` permite atravesar el directorio (751) para leer los challenges; `.env` y `admin-access.txt` conservan permisos 600.
 
-Cuando TCP 80 esté accesible, ejecutar en el VPS:
+Pasaron **13 comprobaciones desde fuera del VPS** con validación TLS activada: página principal, health, manifiesto, service worker, offline e iconos; login del piloto, cookie segura, consulta autenticada del restaurante, refresh, logout y rechazo del JWT revocado. También se probó `/api/health` con resolución DNS normal.
 
-```sh
-certbot certonly --webroot --webroot-path /opt/tavixo/acme --domain app.birriaelcachanilla.com.mx --non-interactive --deploy-hook 'nginx -t && systemctl reload nginx'
-install -m 644 /opt/tavixo/tavixo-https.conf /etc/nginx/sites-available/tavixo
-nginx -t
-# Sólo tras un test exitoso:
-systemctl reload nginx
-curl --fail https://app.birriaelcachanilla.com.mx/api/health
-```
+Renovación por webroot en el timer existente `snap.certbot.renew.timer`, con deploy hook `nginx -t && systemctl reload nginx`. El vhost HTTPS final conserva la ruta de challenge para renovaciones. La simulación `certbot renew --cert-name app.birriaelcachanilla.com.mx --dry-run --no-random-sleep-on-renew` terminó correctamente.
 
-Ya existe el timer de renovación `snap.certbot.renew.timer`. El certificado nuevo deberá guardar su webroot y deploy hook para renovar y recargar Nginx; falta comprobar esa renovación después de emitirlo.
-
-No se puede considerar completo el acceso público hasta emitir el certificado y probar login/refresh/logout sobre HTTPS desde fuera del VPS.
+Las credenciales de administrador se entregan por archivo privado al propietario, separado de Git. No se registraron contraseñas ni tokens en los resultados de las pruebas. La instalación de la PWA en un navegador y pruebas de carga quedan fuera de esta verificación.
