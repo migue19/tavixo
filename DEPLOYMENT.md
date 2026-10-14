@@ -7,7 +7,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `e06de17dded0d115b9dd0705f606622737ab68d6` (Sprint 2).
+- Código de aplicación actual: `a35a6e42a0030d504d8782af4e57a95fdb713e13` (Sprint 3).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -38,3 +38,7 @@ Las credenciales de administrador se entregan por archivo privado al propietario
 ## Actualización al Sprint 2
 
 Restaurantes, sucursales, equipo, roles y cambio de contraseña propia disponibles. Migración y despliegue verificados con respaldo previo, imágenes de reversión y conservación de los servicios existentes. Ver [SPRINT2_RESULTS.md](SPRINT2_RESULTS.md) para resultados y límites. El proceso de actualización reinició únicamente API/web de Tavixo y conservó PostgreSQL/volumen y configuración Nginx.
+
+## Actualización al Sprint 3
+
+Menú, categorías, productos/precios/disponibilidad y mesas por sucursal disponibles. Actualización con aprobación explícita, migración aditiva, respaldo e imágenes de reversión; los servicios existentes se conservaron. Ver [SPRINT3_RESULTS.md](SPRINT3_RESULTS.md). Sólo API/web de Tavixo se reiniciaron; no se modificaron los datos del equipo, sucursales o precios reales del piloto.
