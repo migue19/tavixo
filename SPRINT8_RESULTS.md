@@ -1,6 +1,6 @@
 # Sprint 8 · Corte de caja y resumen de ventas
 
-Implementado el 14 de octubre de 2026. El usuario eligió fondo inicial, efectivo contado y diferencias. Despliegue pendiente de autorización específica.
+Implementado el 14 de octubre de 2026. El usuario eligió fondo inicial, efectivo contado y diferencias. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -29,3 +29,13 @@ Implementado el 14 de octubre de 2026. El usuario eligió fondo inicial, efectiv
 ## Despliegue
 
 Requiere autorización específica, respaldo previo e imágenes de reversión. Migración aditiva 20261014050000_cash_cuts. No cambios a Compose, puertos o Nginx; sólo actualización de API/web y herramienta de migración. No borrar CashCut al revertir: conservar los cortes guardados. Sprint 7 puede continuar con el esquema ampliado aunque no muestre Caja y ventas.
+
+## Producción verificada
+
+- Aplicación 8167089 desplegada con Node 24 en https://app.birriaelcachanilla.com.mx.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint8-20261014T153036Z`: dump validado, fuente, entorno y snapshot. Imágenes de reversión `tavixo-api:pre-sprint8` / `tavixo-web:pre-sprint8` conservadas; no se requirió reversión.
+- Migración 20261014050000_cash_cuts aplicada, sin inventar cortes ni modificar productos, categorías, mesas, sucursales, membresías, cuentas, líneas, rondas, eventos o pagos. Comparación exacta antes/después aprobada.
+- Sólo API/web recreadas y saludables. PostgreSQL y los demás contenedores conservaron IDs y tiempos de arranque; hashes de Nginx sin cambios. Puertos 6000/6001 siguen ligados a 127.0.0.1; base privada.
+- 38 comprobaciones públicas HTTPS aprobadas: TLS/PWA, autenticación, catálogo/mesas/rondas, tickets/PDF, resumen de caja diario, desglose efectivo/tarjeta, lista de cortes y validación de fecha/corte/permisos.
+- Navegador público: sesión restaurada y módulo Caja y ventas visible con resumen real del 14 de octubre, cero cobros y cero cortes. La cuenta histórica cerrada sin pago queda fuera correctamente. Captura `../tavixo-sprint8-produccion.jpg`.
+- No se crearon cortes, pedidos ni pagos de prueba en producción. Guardado y recuperación del corte con faltante se verificaron en la demo local aislada.
