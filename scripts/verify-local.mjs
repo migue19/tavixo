@@ -400,7 +400,53 @@ try {
       'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
       [legacyPayment],
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint10.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    for (const name of [
+      "20261014070000_mixed_payments",
+      "20261014071000_mixed_payments",
+    ])
+      await cp(
+        `apps/api/prisma/migrations/${name}`,
+        `work/upgrade/migrations/${name}`,
+        { recursive: true },
+      );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const beforeShifts = await client.query(
+      'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
+      [legacyPayment],
+    );
     await run(["run", "db:migrate"]);
+    const afterShifts = await client.query(
+      'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
+      [legacyPayment],
+    );
+    assert(
+      afterShifts.rows[0].original.shiftId === null,
+      "Sprint 11 leaves historical payments outside shifts",
+    );
+    delete afterShifts.rows[0].original.shiftId;
+    assert(
+      JSON.stringify(beforeShifts.rows) === JSON.stringify(afterShifts.rows),
+      "Sprint 11 preserves historical payments and their mixed portions",
+    );
+    const inventedShifts = await client.query(
+      'SELECT count(*)::int AS count FROM "CashShift"',
+    );
+    assert(
+      inventedShifts.rows[0].count === 0,
+      "Sprint 11 does not invent historical shifts",
+    );
     const afterMixed = await client.query(
       'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
       [legacyPayment],
@@ -413,6 +459,7 @@ try {
     );
     delete migratedPayment.cashAmountCents;
     delete migratedPayment.cardAmountCents;
+    delete migratedPayment.shiftId;
     assert(
       JSON.stringify(beforeMixed.rows) === JSON.stringify(afterMixed.rows),
       "Sprint 10 preserves original paid amounts, timestamps and retry hashes",

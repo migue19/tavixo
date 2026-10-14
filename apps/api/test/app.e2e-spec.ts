@@ -95,6 +95,16 @@ after(async () => {
         restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
       },
     });
+    await db.cashMovement.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
+    await db.cashShift.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
     await db.order.deleteMany({
       where: {
         restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
@@ -2542,4 +2552,352 @@ it("concurrent mixed submissions register exactly one payment and preserve legac
     .send(legacy.payment)
     .expect(201);
   assert.equal(original.body.payment.id, retry.body.payment.id);
+});
+
+async function shiftFixture() {
+  const f = await paymentFixture();
+  const shifts = `/api/restaurant/branches/${f.branch.id}/cash/shifts`;
+  const openBody = { requestId: randomUUID(), openingCents: 10000 };
+  const opened = await request(app.getHttpServer())
+    .post(shifts)
+    .set("Authorization", f.staff.CASHIER)
+    .send(openBody)
+    .expect(201);
+  return { ...f, shifts, openBody, shift: opened.body };
+}
+
+it("opens one shared branch shift, retries exactly and rejects duplicate concurrent openings", async () => {
+  const f = await shiftFixture();
+  const retry = await request(app.getHttpServer())
+    .post(f.shifts)
+    .set("Authorization", f.auth)
+    .send(f.openBody)
+    .expect(201);
+  assert.equal(retry.body.id, f.shift.id);
+  await request(app.getHttpServer())
+    .post(f.shifts)
+    .set("Authorization", f.auth)
+    .send({ ...f.openBody, openingCents: 20000 })
+    .expect(409);
+  const race = await Promise.all([
+    request(app.getHttpServer())
+      .post(f.shifts)
+      .set("Authorization", f.auth)
+      .send({ ...f.openBody, requestId: randomUUID() }),
+    request(app.getHttpServer())
+      .post(f.shifts)
+      .set("Authorization", f.auth)
+      .send({ ...f.openBody, requestId: randomUUID() }),
+  ]);
+  assert.deepEqual(
+    race.map((r) => r.status),
+    [409, 409],
+  );
+  assert.equal(
+    await db.cashShift.count({
+      where: { branchId: f.branch.id, closedAt: null },
+    }),
+    1,
+  );
+  await assert.rejects(
+    db.cashShift.create({
+      data: {
+        branchId: f.branch.id,
+        restaurantId: a,
+        openingCents: 0,
+        openedByName: "No",
+        requestId: randomUUID(),
+        requestHash: "fixture",
+      },
+    }),
+  );
+});
+
+it("links mixed payments by shift identity across midnight and reconciles withdrawals, expenses and closure", async () => {
+  const f = await shiftFixture();
+  await db.cashShift.update({
+    where: { id: f.shift.id },
+    data: { openedAt: new Date("2026-01-14T20:00:00Z") },
+  });
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({
+      ...f.payment,
+      method: "MIXED",
+      cardAmountCents: 5000,
+      reference: "turno-mixed",
+    })
+    .expect(201);
+  assert.equal(paid.body.payment.shiftId, f.shift.id);
+  await db.payment.update({
+    where: { id: paid.body.payment.id },
+    data: { createdAt: new Date("2026-01-16T07:00:00Z") },
+  });
+  let list = await request(app.getHttpServer())
+    .get(f.shifts)
+    .set("Authorization", f.staff.CASHIER)
+    .expect(200);
+  assert.equal(list.body.active.revision, 1);
+  assert.equal(list.body.active.summary.cashCents, 3700);
+  assert.equal(list.body.active.summary.cardCents, 5000);
+  assert.equal(list.body.active.summary.paymentCount, 1);
+  assert.equal(list.body.active.summary.expectedCents, 13700);
+  const withdrawal = {
+    requestId: randomUUID(),
+    kind: "WITHDRAWAL",
+    amountCents: 2000,
+    reason: "Retiro a caja fuerte",
+    expectedRevision: 1,
+  };
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/movements`)
+    .set("Authorization", f.staff.CASHIER)
+    .send(withdrawal)
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/movements`)
+    .set("Authorization", f.auth)
+    .send(withdrawal)
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/movements`)
+    .set("Authorization", f.auth)
+    .send({
+      ...withdrawal,
+      requestId: randomUUID(),
+      kind: "EXPENSE",
+      amountCents: 1000,
+      reason: "Compra de hielo",
+      expectedRevision: 2,
+    })
+    .expect(201);
+  const closeBody = {
+    requestId: randomUUID(),
+    countedCents: 10000,
+    expectedRevision: 3,
+    notes: "Faltante revisado",
+  };
+  const closed = await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/close`)
+    .set("Authorization", f.staff.CASHIER)
+    .send(closeBody)
+    .expect(201);
+  assert.equal(closed.body.snapshot.expectedCents, 10700);
+  assert.equal(closed.body.snapshot.differenceCents, -700);
+  assert.equal(closed.body.snapshot.withdrawalsCents, 2000);
+  assert.equal(closed.body.snapshot.expensesCents, 1000);
+  assert.equal(closed.body.snapshot.movements.length, 2);
+  assert.equal(closed.body.closedByName, "CASHIER");
+  const repeated = await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/close`)
+    .set("Authorization", f.auth)
+    .send(closeBody)
+    .expect(201);
+  assert.deepEqual(repeated.body.snapshot, closed.body.snapshot);
+  list = await request(app.getHttpServer())
+    .get(f.shifts)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(list.body.active, null);
+  assert.equal(list.body.history.length, 1);
+  assert.ok(!JSON.stringify(list.body).includes("requestHash"));
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/movements`)
+    .set("Authorization", f.auth)
+    .send({ ...withdrawal, requestId: randomUUID(), expectedRevision: 4 })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/close`)
+    .set("Authorization", f.auth)
+    .send({ ...closeBody, requestId: randomUUID(), expectedRevision: 4 })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(f.shifts)
+    .set("Authorization", f.auth)
+    .send({ ...f.openBody, requestId: randomUUID() })
+    .expect(201);
+  const historical = await db.cashShift.findUniqueOrThrow({
+    where: { id: f.shift.id },
+  });
+  assert.deepEqual(historical.snapshot, closed.body.snapshot);
+});
+
+it("rejects overspending, stale movement and close revisions, invalid money and empty reasons", async () => {
+  const f = await shiftFixture();
+  const body = {
+    requestId: randomUUID(),
+    kind: "EXPENSE",
+    amountCents: 1000,
+    reason: "Hielo",
+    expectedRevision: 0,
+  };
+  const path = `${f.shifts}/${f.shift.id}/movements`;
+  for (const override of [
+    { amountCents: 0 },
+    { amountCents: -1 },
+    { amountCents: 1.5 },
+    { reason: " " },
+    { kind: "DEPOSIT" },
+    { amountCents: null },
+  ])
+    await request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", f.auth)
+      .send({ ...body, ...override })
+      .expect(400);
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send({ ...body, amountCents: 10001 })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send(body)
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send({ ...body, reason: "Otro motivo" })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send({ ...body, requestId: randomUUID() })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${f.shift.id}/close`)
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      countedCents: 9000,
+      expectedRevision: 0,
+      notes: "",
+    })
+    .expect(409);
+  await assert.rejects(
+    db.cashMovement.updateMany({
+      where: { shiftId: f.shift.id },
+      data: { amountCents: 0 },
+    }),
+  );
+});
+
+it("scopes shared cash shifts to cashier branch and tenant and rejects waiter/kitchen access", async () => {
+  const f = await shiftFixture();
+  for (const role of ["WAITER", "KITCHEN"]) {
+    await request(app.getHttpServer())
+      .get(f.shifts)
+      .set("Authorization", f.staff[role])
+      .expect(403);
+    await request(app.getHttpServer())
+      .post(f.shifts)
+      .set("Authorization", f.staff[role])
+      .send(f.openBody)
+      .expect(403);
+  }
+  await request(app.getHttpServer()).get(f.shifts).expect(401);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.other.id}/cash/shifts`)
+    .set("Authorization", f.auth)
+    .expect(404);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.other.id}/cash/shifts`)
+    .set("Authorization", f.staff.CASHIER)
+    .expect(403);
+  await request(app.getHttpServer())
+    .post(`${f.shifts}/${randomUUID()}/close`)
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      countedCents: 0,
+      expectedRevision: 0,
+      notes: "",
+    })
+    .expect(404);
+});
+
+it("serializes close against payment and movement, with each payment assigned at most once", async () => {
+  const f = await shiftFixture();
+  const results = await Promise.all([
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(f.payment),
+    request(app.getHttpServer())
+      .post(`${f.shifts}/${f.shift.id}/close`)
+      .set("Authorization", f.auth)
+      .send({
+        requestId: randomUUID(),
+        countedCents: 10000,
+        expectedRevision: 0,
+        notes: "",
+      }),
+  ]);
+  assert.equal(results[0].status, 201);
+  const shift = await db.cashShift.findUniqueOrThrow({
+    where: { id: f.shift.id },
+  });
+  const payment = await db.payment.findUniqueOrThrow({
+    where: { orderId: f.order.id },
+  });
+  if (results[1].status === 201) {
+    assert.equal(payment.shiftId, null);
+    assert.equal((shift.snapshot as { paymentCount: number }).paymentCount, 0);
+  } else {
+    assert.equal(results[1].status, 409);
+    assert.equal(payment.shiftId, f.shift.id);
+    assert.equal(shift.closedAt, null);
+    assert.equal(shift.revision, 1);
+  }
+  const second = await shiftFixture();
+  const race = await Promise.all([
+    request(app.getHttpServer())
+      .post(`${second.shifts}/${second.shift.id}/close`)
+      .set("Authorization", second.auth)
+      .send({
+        requestId: randomUUID(),
+        countedCents: 10000,
+        expectedRevision: 0,
+        notes: "",
+      }),
+    request(app.getHttpServer())
+      .post(`${second.shifts}/${second.shift.id}/movements`)
+      .set("Authorization", second.auth)
+      .send({
+        requestId: randomUUID(),
+        kind: "WITHDRAWAL",
+        amountCents: 1000,
+        expectedRevision: 0,
+        reason: "Retiro",
+      }),
+  ]);
+  assert.deepEqual(race.map((r) => r.status).sort(), [201, 409]);
+});
+
+it("keeps unassigned historical payments outside new shifts and counts daily sales unchanged", async () => {
+  const f = await paymentFixture();
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  assert.equal(paid.body.payment.shiftId, null);
+  const path = `/api/restaurant/branches/${f.branch.id}/cash/shifts`;
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send({ requestId: randomUUID(), openingCents: 5000 })
+    .expect(201);
+  const list = await request(app.getHttpServer())
+    .get(path)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(list.body.active.summary.paymentCount, 0);
+  assert.equal(list.body.active.summary.expectedCents, 5000);
+  const stored = await db.payment.findUniqueOrThrow({
+    where: { id: paid.body.payment.id },
+  });
+  assert.equal(stored.shiftId, null);
 });

@@ -1,4 +1,4 @@
-# Tavixo · Sprint 10
+# Tavixo · Sprint 11
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,28 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Caja por turnos del Sprint 11
+
+En **Turnos de caja**, selecciona la sucursal y abre un turno con fondo inicial. Hay una caja compartida y sólo un turno abierto por sucursal. OWNER/MANAGER/CASHIER pueden abrir, registrar movimientos y cerrar; cajero sólo en su sucursal asignada.
+
+- Cobros nuevos se asocian automáticamente al turno abierto dentro de la misma transacción del pago. Si no hay turno abierto, permanecen en resumen diario sin turno; no se asignan retroactivamente. La operación de cobro existente sigue disponible.
+- Un turno puede cruzar medianoche. Sus ventas se calculan por la relación de pago/turno, no por fecha diaria ni rangos aproximados. Efectivo/tarjeta de pagos mixtos separados y cada cuenta contada una sola vez.
+- Retiros y gastos requieren importe positivo y motivo; guardan responsable y fecha. No se pueden editar/eliminar ni registrar sobre un turno cerrado. El importe no puede superar el efectivo esperado disponible.
+- Efectivo esperado = fondo inicial + ventas netas en efectivo − retiros − gastos. El cambio de los cobros ya está descontado. Al cerrar, contar el fondo inicial junto al resto del efectivo; diferencia = contado − esperado.
+- Cierre guarda fecha, responsable, notas y fotografía de ventas/movimientos/diferencia. Permite abrir después otro turno; no cambia cortes diarios ni pagos anteriores. Actualización manual de caja; revisión esperada detecta cobros/movimientos concurrentes antes de guardar o cerrar.
+- Reintentos exactos de apertura/movimiento/cierre no duplican operaciones; UUID e importes/revisión forman el contrato de cada envío.
+- Historial: últimos 50 turnos cerrados; detalle últimos 200 movimientos por turno, totales completos. Sin depósitos, entradas adicionales, transferencias entre cajas, adjuntos de gastos, exportaciones ni reapertura de turnos cerrados en esta entrega.
+- El corte diario de Caja y ventas sigue siendo una fotografía acumulada de cobros; no incluye retiros/gastos de turnos. Usa el cierre de turno para esa conciliación.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | /api/restaurant/branches/:branchId/cash/shifts | Turno activo con resumen e historial de cerrados |
+| POST | /api/restaurant/branches/:branchId/cash/shifts | requestId, openingCents |
+| POST | /api/restaurant/branches/:branchId/cash/shifts/:id/movements | requestId, kind WITHDRAWAL/EXPENSE, amountCents, reason, expectedRevision |
+| POST | /api/restaurant/branches/:branchId/cash/shifts/:id/close | requestId, countedCents, notes, expectedRevision |
+
+Migración aditiva `20261014080000_cash_shifts`: agrega turnos/movimientos y Payment.shiftId nullable, sin inventar turnos ni asociar pagos anteriores. Requiere autorización específica de despliegue y respaldo. Conservar tablas y enlaces al revertir; una versión anterior puede cobrar sin registrar el turno y omitir movimientos, por lo que no se debe volver mientras haya un turno activo sin evaluar esa operación.
 
 ## Pago mixto del Sprint 10
 

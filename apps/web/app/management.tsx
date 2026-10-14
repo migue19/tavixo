@@ -3,6 +3,7 @@ import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./catalog";
 import Orders from "./orders";
 import Cash from "./cash";
+import Shifts from "./shifts";
 export type Session = {
   accessToken: string;
   expiresIn: number;
@@ -185,7 +186,10 @@ export default function Management({
           ["orders", "Comandas"],
           ["kitchen", "Cocina"],
           ...(["OWNER", "MANAGER", "CASHIER"].includes(session.user.role)
-            ? [["cash", "Caja y ventas"]]
+            ? [
+                ["cash", "Caja y ventas"],
+                ["shifts", "Turnos de caja"],
+              ]
             : []),
           ...(administrative ? [["team", "Equipo"]] : []),
           ["account", "Mi cuenta"],
@@ -662,6 +666,14 @@ export default function Management({
       )}
       {tab === "cash" && (
         <Cash
+          key={session.restaurant.id}
+          session={session}
+          branches={branches}
+          online={online}
+        />
+      )}
+      {tab === "shifts" && (
+        <Shifts
           key={session.restaurant.id}
           session={session}
           branches={branches}

@@ -788,8 +788,17 @@ export class OrdersService {
         throw new BadRequestException(
           "El folio de terminal corresponde sólo a pagos con tarjeta",
         );
+      const shift = await tx.cashShift.findFirst({
+        where: { branchId, restaurantId: member.restaurantId, closedAt: null },
+      });
+      if (shift)
+        await tx.cashShift.update({
+          where: { id: shift.id },
+          data: { revision: { increment: 1 } },
+        });
       await tx.payment.create({
         data: {
+          shiftId: shift?.id ?? null,
           orderId: id,
           branchId,
           restaurantId: member.restaurantId,
