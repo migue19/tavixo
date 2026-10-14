@@ -1,6 +1,6 @@
 # Sprint 7 · Productos en cuentas abiertas
 
-Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendiente de autorización específica.
+Implementado y verificado localmente el 14 de octubre de 2026. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -29,3 +29,14 @@ Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendie
 Migración aditiva: OrderRound y OrderItem.roundId. PostgreSQL continúa privado; no cambia Compose, puertos ni Nginx. Antes de desplegar, respaldar datos y conservar imágenes anteriores. Comparar el contenido anterior de OrderItem excluyendo la nueva columna roundId y comprobar las rondas creadas.
 
 No revertir la migración ni borrar rondas. Una aplicación Sprint 6 no conoce los estados individuales de cuentas con varias rondas; después de operar Sprint 7, evaluar esas cuentas antes de volver al código anterior. El enlace nullable permite escrituras antiguas y Sprint 7 las agrupa en la primera ronda al reanudarse. Sin pedidos/pagos de prueba en producción.
+
+## Producción verificada
+
+- Aplicación e2409f0 desplegada en https://app.birriaelcachanilla.com.mx con Node 24.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint7-20261014T151135Z`: dump validado con pg_restore --list, fuente, entorno y snapshot anterior. Imágenes `tavixo-api:pre-sprint7` y `tavixo-web:pre-sprint7` guardadas. No se requirió reversión.
+- Migración 20261014040000_rounds aplicada; primera ronda de la cuenta histórica creada y sus tres líneas enlazadas.
+- Comparación exacta de los datos anteriores, excluyendo la nueva columna roundId: productos/categorías, mesas, sucursales, membresías, cuentas, precios, eventos y pagos conservados.
+- Sólo API y web reiniciadas, ambas saludables. PostgreSQL y demás contenedores conservaron IDs y tiempos de arranque; hashes de Nginx iguales. Puertos 6000/6001 ligados a 127.0.0.1, base privada.
+- 30 comprobaciones HTTPS aprobadas: TLS, web/PWA, autenticación/refresh/revocación, catálogo, mesas, rondas/links históricos, ticket/PDF y rechazo de solicitudes inválidas o sin sesión.
+- Navegador público: sesión restaurada, selector de destino nuevo y cuenta histórica con Ronda 1, total $410 y condición original cerrada sin pago registrado. Captura `../tavixo-sprint7-produccion.jpg`.
+- No se crearon pedidos ni pagos de prueba en producción. La operación completa de varias rondas y cobro fue verificada en la demo local aislada.
