@@ -1,6 +1,6 @@
 # Sprint 4 · Comandas y cocina
 
-Implementado y verificado localmente el 13 de octubre de 2026 (America/Mexico_City). Pendiente autorización específica para desplegar este sprint en el VPS.
+Implementado y verificado localmente el 13 de octubre de 2026 (America/Mexico_City). Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -32,4 +32,15 @@ Implementado y verificado localmente el 13 de octubre de 2026 (America/Mexico_Ci
 
 Una comanda equivale a una cuenta completa; agregar rondas, dividir cuentas, pagos, tickets, impresión e inventario quedan para próximos sprints. Los datos de demostración viven únicamente en una base temporal local. No se cargan fixtures a producción.
 
-Sin despliegue en el VPS durante esta entrega. Antes de desplegar: autorización explícita del usuario, respaldo de DB/entorno, conservar imágenes API/web actuales para reversión, aplicar migración aditiva y reiniciar sólo API/web de Tavixo. Confirmar los 16 productos/5 categorías actuales y verificar salud, acceso, menú y comandas. No modificar Nginx ni servicios ajenos.
+Despliegue completado:
+
+- Código de aplicación `be80290`, construido con Node 24 en Ubuntu 24.04.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint4-20261014T014515Z`; archivo de DB validado con listado pg_restore, fuente y entorno guardados con permisos privados. No se realizó restauración del respaldo.
+- Imágenes de reversión `tavixo-api:pre-sprint4` y `tavixo-web:pre-sprint4`, con override en el respaldo. No fue necesario revertir.
+- Migración `20261014020000_orders` aplicada. Sólo API/web de Tavixo recreadas; ambas saludables.
+- Snapshot completo de productos, categorías, mesas, sucursales y membresías idéntico antes/después. Conservados 16 productos, precios y 5 categorías de la landing.
+- Los demás contenedores, incluido PostgreSQL de Tavixo, conservaron IDs y tiempos de arranque. Los hashes de configuración Nginx no cambiaron.
+- **19 comprobaciones públicas HTTPS aprobadas:** página, health, assets PWA, login, cookie segura, restaurante/sucursal, 16 productos/precios, 5 categorías, consulta de comandas, rechazo sin sesión, refresh, logout y revocación.
+- Comprobación adicional en el VPS: creación con cuerpo incompleto rechazada con 400, sin generar pedidos de prueba.
+- Navegador público: sesión existente renovada, nuevas pestañas Comandas/Cocina visibles, los productos disponibles en captura y estados vacíos correctos. Captura `../tavixo-sprint4-produccion.jpg`.
+- No hay mesas reales registradas; es necesario configurarlas en Mesas antes de tomar la primera comanda. No se inventaron mesas ni pedidos en producción.
