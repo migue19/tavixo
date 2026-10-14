@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import TicketPanel from "./ticket";
 import PaymentPanel, { type Payment } from "./payment";
 import type { Session } from "./management";
 type Branch = { id: string; name: string; active: boolean };
@@ -654,6 +655,14 @@ export default function Orders({
                   );
                   setHistory(true);
                 }}
+              />
+            )}
+            {role !== "KITCHEN" && (
+              <TicketPanel
+                order={order}
+                branchId={branchId}
+                token={session.accessToken}
+                disabled={disabled}
               />
             )}
             <details>

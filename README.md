@@ -1,4 +1,4 @@
-# Tavixo · Sprint 5
+# Tavixo · Sprint 6
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,26 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Tickets digitales del Sprint 6
+
+En **Comandas**, abre **Ver cuenta digital** para consultar una cuenta o **Ver comprobante de pago** cuando tenga pago registrado. La vista previa incluye restaurante/sucursal, mesa, folio, fecha del pedido, productos, cantidad, precio unitario y total MXN. El comprobante agrega método, importe pagado, recibido/cambio para efectivo, folio de terminal, actor y fecha del pago.
+
+- **Descargar PDF** genera un archivo privado descargable; puedes compartir el archivo por tu medio habitual. No se crean enlaces públicos ni se envían mensajes desde Tavixo.
+- Sólo OWNER/MANAGER/CASHIER/WAITER tienen acceso a estos tickets. KITCHEN no tiene acceso. La sucursal y el restaurante se validan con la sesión en ambos endpoints.
+- Una cuenta sin pago no genera comprobante: devuelve 409. Las cerradas del Sprint 4 muestran «Cuenta cerrada · sin pago registrado». Las canceladas no generan tickets de cuenta o pago.
+- Datos leídos en una transacción consistente y precios/nombres de las líneas guardadas, independientes del menú actual. Descargar o repetir no cambia estados, eventos ni pagos.
+- PDF de formato compacto con fuentes Liberation Sans incluidas (licencia OFL en `apps/api/assets/fonts`), acentos, salto de página sin partir una línea de producto y numeración. Fechas del ticket en America/Mexico_City, igual en vista previa y PDF.
+- No se guardan PDFs en el servidor ni tickets en caché del navegador. Datos de vista previa sólo en memoria; descarga con sesión vigente y `Cache-Control: no-store`. Un archivo descargado queda bajo control del usuario.
+- Sin impresoras físicas, impresión automática, QR público, correo/WhatsApp automatizado, facturación fiscal o historial de descargas en esta entrega. El formato digital fue la prioridad solicitada.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | /api/restaurant/branches/:branchId/orders/:id/ticket?kind=ACCOUNT | Vista previa de cuenta; ACCOUNT es el valor predeterminado |
+| GET | /api/restaurant/branches/:branchId/orders/:id/ticket?kind=PAYMENT | Comprobante; requiere pago registrado |
+| GET | /api/restaurant/branches/:branchId/orders/:id/ticket.pdf?kind=ACCOUNT o PAYMENT | PDF autenticado, attachment |
+
+No hay cambios de esquema ni migraciones nuevas en el Sprint 6. La actualización requiere autorización específica y respaldo previo; sólo actualizar API/web de Tavixo. Datos de cuentas/pagos permanecen compatibles con Sprint 5.
 
 ## Cobros del Sprint 5
 

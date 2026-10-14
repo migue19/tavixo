@@ -1435,3 +1435,166 @@ it("handles concurrent payments exactly once and protects database amounts and t
   assert.deepEqual(races.map((r) => r.status).sort(), [201, 409]);
   assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 2);
 });
+
+it("generates account and paid ticket from snapshots without claiming an unpaid receipt", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/ticket`;
+  const account = await request(app.getHttpServer())
+    .get(path)
+    .set("Authorization", f.staff.WAITER)
+    .expect(200);
+  assert.equal(account.body.title, "Cuenta");
+  assert.equal(account.body.notice, "Cuenta pendiente de pago");
+  assert.equal(account.body.order.totalCents, 8700);
+  assert.equal(account.body.order.items[0].lineTotalCents, 8700);
+  assert.equal(account.body.payment, null);
+  assert.ok(!JSON.stringify(account.body).includes("passwordHash"));
+  assert.ok(!JSON.stringify(account.body).includes("requestHash"));
+  assert.ok(!JSON.stringify(account.body).includes("notes"));
+  await request(app.getHttpServer())
+    .get(path + "?kind=PAYMENT")
+    .set("Authorization", f.auth)
+    .expect(409);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { name: "Changed", priceCents: 100 },
+  });
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.staff.CASHIER)
+    .send(f.payment)
+    .expect(201);
+  const receipt = await request(app.getHttpServer())
+    .get(path + "?kind=PAYMENT")
+    .set("Authorization", f.staff.CASHIER)
+    .expect(200);
+  assert.equal(receipt.body.title, "Comprobante de pago");
+  assert.equal(receipt.body.notice, "Pago registrado");
+  assert.equal(receipt.body.order.items[0].name, "Taco");
+  assert.equal(receipt.body.payment.id, paid.body.payment.id);
+  assert.equal(receipt.body.payment.changeCents, 1300);
+  const before = await db.order.findUniqueOrThrow({
+    where: { id: f.order.id },
+    include: { events: true, payment: true },
+  });
+  const pdf = await request(app.getHttpServer())
+    .get(path + ".pdf?kind=PAYMENT")
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.match(pdf.headers["content-type"], /application\/pdf/);
+  assert.match(
+    pdf.headers["content-disposition"],
+    /attachment; filename="tavixo-payment-/,
+  );
+  assert.match(pdf.headers["cache-control"], /no-store/);
+  assert.ok(Buffer.isBuffer(pdf.body));
+  assert.ok(pdf.body.subarray(0, 5).equals(Buffer.from("%PDF-")));
+  assert.ok(pdf.body.toString("latin1").trimEnd().endsWith("%%EOF"));
+  const after = await db.order.findUniqueOrThrow({
+    where: { id: f.order.id },
+    include: { events: true, payment: true },
+  });
+  assert.deepEqual(after, before);
+});
+it("isolates ticket and PDF access by role, tenant/branch and rejects cancelled or legacy paid receipts", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/ticket`;
+  for (const suffix of ["", ".pdf"]) {
+    await request(app.getHttpServer())
+      .get(path + suffix)
+      .expect(401);
+    await request(app.getHttpServer())
+      .get(path + suffix)
+      .set("Authorization", f.staff.KITCHEN)
+      .expect(403);
+  }
+  const sibling = await db.branch.create({
+    data: { restaurantId: a, name: `Ticket sibling ${randomUUID()}` },
+  });
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${sibling.id}/orders/${f.order.id}/ticket`)
+    .set("Authorization", f.staff.WAITER)
+    .expect(403);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${sibling.id}/orders/${f.order.id}/ticket`)
+    .set("Authorization", f.auth)
+    .expect(404);
+  await request(app.getHttpServer())
+    .get(
+      `/api/restaurant/branches/${f.other.id}/orders/${f.order.id}/ticket.pdf`,
+    )
+    .set("Authorization", f.auth)
+    .expect(404);
+  await request(app.getHttpServer())
+    .get(path + "?kind=OTHER")
+    .set("Authorization", f.auth)
+    .expect(400);
+  await request(app.getHttpServer())
+    .get(path + "?kind=ACCOUNT&tenantId=forged")
+    .set("Authorization", f.auth)
+    .expect(400);
+  await db.order.update({
+    where: { id: f.order.id },
+    data: { status: "CLOSED" },
+  });
+  const legacy = await request(app.getHttpServer())
+    .get(path)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.match(legacy.body.notice, /sin pago registrado/);
+  await request(app.getHttpServer())
+    .get(path + ".pdf?kind=PAYMENT")
+    .set("Authorization", f.auth)
+    .expect(409);
+  await db.order.update({
+    where: { id: f.order.id },
+    data: { status: "CANCELLED" },
+  });
+  await request(app.getHttpServer())
+    .get(path)
+    .set("Authorization", f.auth)
+    .expect(409);
+});
+it("renders long digital accounts across PDF pages and preserves Spanish names and card receipt amounts", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/ticket`;
+  await db.orderItem.update({
+    where: { id: f.order.items[0].id },
+    data: { name: "Quesabirría con consomé" },
+  });
+  await db.orderItem.createMany({
+    data: Array.from({ length: 99 }, (_, i) => ({
+      orderId: f.order.id,
+      restaurantId: a,
+      branchId: f.branch.id,
+      productId: f.product.id,
+      name: `Producto ${i} con nombre largo para comprobar saltos de página`,
+      quantity: 1,
+      unitPriceCents: 0,
+    })),
+  });
+  const long = await request(app.getHttpServer())
+    .get(path + ".pdf")
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.ok(
+    (long.body.toString("latin1").match(/\/Type \/Page\b/g) ?? []).length > 1,
+  );
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({
+      ...f.payment,
+      method: "CARD",
+      receivedCents: 8700,
+      reference: "DEMO-TICKET",
+    })
+    .expect(201);
+  const receipt = await request(app.getHttpServer())
+    .get(path + "?kind=PAYMENT")
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(receipt.body.payment.reference, "DEMO-TICKET");
+  assert.equal(receipt.body.payment.amountCents, 8700);
+  assert.equal(receipt.body.payment.changeCents, 0);
+});

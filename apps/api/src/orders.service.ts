@@ -15,6 +15,7 @@ import {
 import { createHash } from "node:crypto";
 import { PrismaService } from "./prisma.service";
 import { CreateOrderDto, OrderStatusDto, CreatePaymentDto } from "./orders.dto";
+import { Ticket, TicketKind } from "./ticket";
 const include = {
   items: true,
   payment: true,
@@ -87,6 +88,80 @@ export class OrdersService {
       }),
     ]);
     return [...open, ...recent];
+  }
+  async ticket(
+    member: Membership,
+    branchId: string,
+    id: string,
+    kind: TicketKind,
+  ): Promise<Ticket> {
+    if (member.role === Role.KITCHEN)
+      throw new ForbiddenException(
+        "Cocina no tiene acceso a tickets de cuenta o pago",
+      );
+    return this.db.$transaction(
+      async (tx) => {
+        await this.branch(tx, member, branchId);
+        const order = await tx.order.findFirst({
+          where: { id, branchId, restaurantId: member.restaurantId },
+          include: {
+            items: { orderBy: { id: "asc" } },
+            payment: true,
+            branch: { include: { restaurant: true } },
+          },
+        });
+        if (!order) throw new NotFoundException("Comanda no encontrada");
+        if (order.status === OrderStatus.CANCELLED)
+          throw new ConflictException("La cuenta está cancelada");
+        if (
+          kind === TicketKind.PAYMENT &&
+          (!order.payment || order.status !== OrderStatus.CLOSED)
+        )
+          throw new ConflictException(
+            "Esta cuenta no tiene un pago registrado",
+          );
+        const p = kind === TicketKind.PAYMENT ? order.payment : null;
+        return {
+          kind,
+          title: kind === TicketKind.PAYMENT ? "Comprobante de pago" : "Cuenta",
+          notice: order.payment
+            ? "Pago registrado"
+            : order.status === OrderStatus.CLOSED
+              ? "Cuenta cerrada · sin pago registrado"
+              : "Cuenta pendiente de pago",
+          restaurant: order.branch.restaurant.name,
+          branch: order.branch.name,
+          address: order.branch.address,
+          order: {
+            id: order.id,
+            number: order.number,
+            tableName: order.tableName,
+            createdAt: order.createdAt.toISOString(),
+            createdByName: order.createdByName,
+            totalCents: order.totalCents,
+            items: order.items.map((i) => ({
+              name: i.name,
+              quantity: i.quantity,
+              unitPriceCents: i.unitPriceCents,
+              lineTotalCents: i.quantity * i.unitPriceCents,
+            })),
+          },
+          payment: p
+            ? {
+                id: p.id,
+                method: p.method,
+                amountCents: p.amountCents,
+                receivedCents: p.receivedCents,
+                changeCents: p.changeCents,
+                reference: p.reference,
+                actorName: p.actorName,
+                createdAt: p.createdAt.toISOString(),
+              }
+            : null,
+        };
+      },
+      { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead },
+    );
   }
   create(actor: Membership, branchId: string, dto: CreateOrderDto) {
     const hash = createHash("sha256")
