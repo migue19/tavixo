@@ -1,6 +1,6 @@
 # Sprint 5 · Cobros en efectivo y tarjeta
 
-Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_City). Pendiente autorización específica para desplegar este sprint en el VPS.
+Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_City). Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -33,4 +33,16 @@ Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_Ci
 
 Registro completo por cuenta en MXN. Sin pagos mixtos, abonos, propinas, descuentos, devoluciones, cortes de caja, facturación, impresión ni procesamiento bancario. Para tarjeta, la confirmación de autorización proviene del operador de la terminal externa.
 
-Sin despliegue durante esta entrega. Antes de actualizar: autorización explícita, respaldo de DB/entorno, imágenes de reversión, migración aditiva y reinicio exclusivo de API/web Tavixo. Preservar los 16 productos/5 categorías y las cuatro mesas reales (4,6,8,4 lugares). No tocar Nginx ni servicios ajenos; no usar pagos reales para verificar el despliegue. Revertir aplicaciones a Sprint 4 conserva los pagos pero deja una interfaz anterior sin registro de cobros: limitar la operación de caja hasta restablecer el Sprint 5.
+Despliegue completado:
+
+- Código de aplicación `0ae2000860944118f0ec6418be00750f21106167`, construido con Node 24 en Ubuntu 24.04.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint5-20261014T135132Z`: DB validada con listado pg_restore, fuente/entorno y snapshot de catálogo/cuentas. No se realizó restauración.
+- Imágenes de reversión `tavixo-api:pre-sprint5` y `tavixo-web:pre-sprint5`, con override en el respaldo; no fue necesario revertir.
+- Migración `20261014030000_payments` aplicada. Sólo API/web de Tavixo recreadas; ambas saludables.
+- Comparación antes/después conserva exactamente productos, categorías, mesas, sucursales, membresías, cuenta existente, líneas y eventos. Cero pagos creados por la migración.
+- Los 16 productos/5 categorías y cuatro mesas (4,6,8,4 lugares) siguen intactos. La cuenta previa sigue cerrada sin pago registrado y se identifica como historial anterior.
+- PostgreSQL de Tavixo y demás contenedores conservaron IDs/tiempos de arranque; hashes de Nginx sin cambios.
+- **22 comprobaciones públicas HTTPS aprobadas**: página/health/PWA, login/cookie segura, restaurante/sucursal, productos/precios/categorías, cuatro mesas, cuentas con resumen de pago, rechazo de cobro incompleto, acceso sin sesión, refresh/logout/revocación.
+- Revisión en navegador público: Comandas carga menú y mesas; historial muestra la cuenta anterior y su condición sin pago registrado. Captura `../tavixo-sprint5-produccion.jpg`. No se enviaron pedidos ni pagos de prueba a producción.
+
+Revertir aplicaciones a Sprint 4 conserva los pagos, pero deja una interfaz anterior sin registro de cobros: limitar la operación de caja hasta restablecer el Sprint 5.
