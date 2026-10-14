@@ -14,4 +14,16 @@ Verificación local completada el 13 de octubre de 2026 (America/Mexico_City), c
 - Seed/migraciones repetibles; sucursal piloto sin duplicados.
 - Health, proxy web, assets PWA, login piloto y refresh correctos.
 
-La prueba local crea y elimina sólo un PostgreSQL temporal; no apunta al VPS. El resultado de la actualización del servidor y revisión del panel se añadirá al finalizar el despliegue.
+## Actualización del VPS completada
+
+- Código desplegado: `e06de17dded0d115b9dd0705f606622737ab68d6`.
+- Respaldo previo de DB, entorno y código en `/opt/tavixo/backups/pre-sprint2-20261014T003236Z`, con acceso privado.
+- Imágenes anteriores conservadas como `tavixo-api:pre-sprint2` y `tavixo-web:pre-sprint2`, con override de reversión en el respaldo. No fue necesario revertir.
+- Imágenes Docker construidas en Ubuntu 24.04 con Node 24; migración aplicada y los tres servicios saludables.
+- 18 comprobaciones de autenticación/assets de servidor correctas; comprobación adicional de Sucursal Principal, membresía OWNER migrada y lista de restaurantes autorizados.
+- 13 comprobaciones públicas por HTTPS correctas, con validación TLS: assets, login, cookie segura, restaurante, refresh, logout y JWT revocado.
+- Revisión del panel en el navegador: Resumen, Sucursales, Equipo y Mi cuenta; Sucursal Principal activa y OWNER conservado. No se crearon empleados ni restaurantes ficticios en producción.
+- Los 16 contenedores anteriores conservan IDs y tiempos de arranque; archivos Nginx previos intactos y `nginx -t` aprobado.
+- HTTPS y configuración de puertos/red privada conservados.
+
+Las pruebas de altas, edición, cambios de permisos y contraseña se ejecutaron en PostgreSQL temporal, no sobre cuentas reales. La revisión del navegador comprobó los datos y formularios existentes sin modificar credenciales o crear datos ficticios. No incluye pruebas de carga ni instalación de la PWA en dispositivos.

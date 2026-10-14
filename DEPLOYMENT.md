@@ -7,7 +7,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación: `a60431c4e08a43171079b703793a1a97ddb23059`.
+- Código de aplicación actual: `e06de17dded0d115b9dd0705f606622737ab68d6` (Sprint 2).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -34,3 +34,7 @@ Pasaron **13 comprobaciones desde fuera del VPS** con validación TLS activada: 
 Renovación por webroot en el timer existente `snap.certbot.renew.timer`, con deploy hook `nginx -t && systemctl reload nginx`. El vhost HTTPS final conserva la ruta de challenge para renovaciones. La simulación `certbot renew --cert-name app.birriaelcachanilla.com.mx --dry-run --no-random-sleep-on-renew` terminó correctamente.
 
 Las credenciales de administrador se entregan por archivo privado al propietario, separado de Git. No se registraron contraseñas ni tokens en los resultados de las pruebas. La instalación de la PWA en un navegador y pruebas de carga quedan fuera de esta verificación.
+
+## Actualización al Sprint 2
+
+Restaurantes, sucursales, equipo, roles y cambio de contraseña propia disponibles. Migración y despliegue verificados con respaldo previo, imágenes de reversión y conservación de los servicios existentes. Ver [SPRINT2_RESULTS.md](SPRINT2_RESULTS.md) para resultados y límites. El proceso de actualización reinició únicamente API/web de Tavixo y conservó PostgreSQL/volumen y configuración Nginx.
