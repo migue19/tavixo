@@ -27,6 +27,8 @@ type Ticket = {
     id: string;
     method: string;
     amountCents: number;
+    cashAmountCents: number;
+    cardAmountCents: number;
     receivedCents: number;
     changeCents: number;
     reference: string;
@@ -209,14 +211,32 @@ export default function TicketPanel({
                 <p>
                   Pago:{" "}
                   <strong>
-                    {ticket.payment.method === "CASH" ? "Efectivo" : "Tarjeta"}
+                    {ticket.payment.method === "CASH"
+                      ? "Efectivo"
+                      : ticket.payment.method === "MIXED"
+                        ? "Mixto"
+                        : "Tarjeta"}
                   </strong>
                   <br />
                   Total pagado: {money(ticket.payment.amountCents)}
-                  {ticket.payment.method === "CASH" && (
+                  {ticket.payment.method === "MIXED" && (
                     <>
                       <br />
-                      Recibido: {money(ticket.payment.receivedCents)}
+                      Efectivo: {money(ticket.payment.cashAmountCents)}
+                      <br />
+                      Tarjeta: {money(ticket.payment.cardAmountCents)}
+                    </>
+                  )}
+                  {ticket.payment.method !== "CARD" && (
+                    <>
+                      <br />
+                      Recibido:{" "}
+                      {money(
+                        ticket.payment.method === "MIXED"
+                          ? ticket.payment.receivedCents -
+                              ticket.payment.cardAmountCents
+                          : ticket.payment.receivedCents,
+                      )}
                       <br />
                       Cambio: {money(ticket.payment.changeCents)}
                     </>

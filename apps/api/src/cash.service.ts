@@ -111,7 +111,13 @@ export class CashService {
       by: ["method"],
       where,
       _count: { _all: true },
-      _sum: { amountCents: true, receivedCents: true, changeCents: true },
+      _sum: {
+        amountCents: true,
+        receivedCents: true,
+        changeCents: true,
+        cashAmountCents: true,
+        cardAmountCents: true,
+      },
     });
     const method = (name: "CASH" | "CARD") => {
       const row = groups.find((g) => g.method === name);
@@ -124,6 +130,16 @@ export class CashService {
     };
     const cash = method("CASH"),
       card = method("CARD");
+    const mixed = groups.find((g) => g.method === "MIXED");
+    const mixedCount = mixed?._count._all ?? 0;
+    cash.count += mixedCount;
+    card.count += mixedCount;
+    cash.totalCents += mixed?._sum.cashAmountCents ?? 0;
+    card.totalCents += mixed?._sum.cardAmountCents ?? 0;
+    cash.receivedCents +=
+      (mixed?._sum.receivedCents ?? 0) - (mixed?._sum.cardAmountCents ?? 0);
+    cash.changeCents += mixed?._sum.changeCents ?? 0;
+    card.receivedCents = card.totalCents;
     const payments = await tx.payment.findMany({
       where,
       take: 200,
@@ -132,6 +148,8 @@ export class CashService {
         id: true,
         method: true,
         amountCents: true,
+        cashAmountCents: true,
+        cardAmountCents: true,
         receivedCents: true,
         changeCents: true,
         reference: true,
@@ -157,12 +175,17 @@ export class CashService {
       periodStart: range.start.toISOString(),
       periodEnd: range.end.toISOString(),
       generatedAt: range.generatedAt.toISOString(),
-      paymentCount: cash.count + card.count,
+      paymentCount: cash.count + card.count - mixedCount,
+      mixedCount,
       totalCents,
       cash,
       card,
       payments: payments.map((p) => ({
         ...p,
+        cashAmountCents:
+          p.cashAmountCents ?? (p.method === "CASH" ? p.amountCents : 0),
+        cardAmountCents:
+          p.cardAmountCents ?? (p.method === "CARD" ? p.amountCents : 0),
         createdAt: p.createdAt.toISOString(),
       })),
       detailLimit: 200,

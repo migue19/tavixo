@@ -378,7 +378,45 @@ try {
       'SELECT row_to_json(c) AS original FROM "CashCut" c WHERE id=$1',
       [legacyCut],
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint9.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    await cp(
+      "apps/api/prisma/migrations/20261014060000_item_cancellations",
+      "work/upgrade/migrations/20261014060000_item_cancellations",
+      { recursive: true },
+    );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const beforeMixed = await client.query(
+      'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
+      [legacyPayment],
+    );
     await run(["run", "db:migrate"]);
+    const afterMixed = await client.query(
+      'SELECT row_to_json(p) AS original FROM "Payment" p WHERE id=$1',
+      [legacyPayment],
+    );
+    const migratedPayment = afterMixed.rows[0].original;
+    assert(
+      migratedPayment.cashAmountCents === 5800 &&
+        migratedPayment.cardAmountCents === 0,
+      "Sprint 10 backfills historical cash/card amounts",
+    );
+    delete migratedPayment.cashAmountCents;
+    delete migratedPayment.cardAmountCents;
+    assert(
+      JSON.stringify(beforeMixed.rows) === JSON.stringify(afterMixed.rows),
+      "Sprint 10 preserves original paid amounts, timestamps and retry hashes",
+    );
     const afterCut = await client.query(
       'SELECT row_to_json(c) AS original FROM "CashCut" c WHERE id=$1',
       [legacyCut],

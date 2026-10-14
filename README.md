@@ -1,4 +1,4 @@
-# Tavixo · Sprint 9
+# Tavixo · Sprint 10
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,19 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Pago mixto del Sprint 10
+
+En **Cobrar cuenta**, selecciona **Mixto · efectivo y tarjeta**. Captura cuánto se paga con tarjeta; Tavixo calcula la parte en efectivo. Captura efectivo recibido, folio de terminal y confirma que la terminal aprobó la parte con tarjeta. Un solo guardado registra ambas partes y cierra la cuenta.
+
+- Ambas partes deben ser positivas y sumar exactamente el total vigente. Ejemplo: cuenta $55, tarjeta $25, efectivo $30; si recibes $50 en efectivo, el cambio es $20.
+- Un Payment por cuenta conserva importe total, partes en efectivo/tarjeta, recibido, cambio, folio y responsable. No se registran abonos independientes ni se procesan tarjetas desde Tavixo.
+- API: método MIXED y cardAmountCents; receivedCents es efectivo recibido **más** parte aprobada con tarjeta. En interfaz/comprobante, efectivo recibido se muestra separado. El servidor deriva la parte neta en efectivo del total y valida todo en centavos enteros.
+- Propietario/gerente/cajero; cuenta entregada y todas las rondas vigentes entregadas. Reintentos idénticos y carreras de cobro conservan un único pago, con totales esperados y bloqueo común con rondas/cancelaciones.
+- Comprobante digital y PDF muestran ambas partes y cambio. Caja suma las partes a sus medios, pero cuenta el pago mixto una sola vez; cada contador por medio puede incluir la misma cuenta mixta.
+- Cortes guardados anteriores conservan su fotografía; no se recalculan ni se alteran. Sin pagos parciales, división entre personas/productos o devoluciones en esta entrega.
+
+Migración en dos pasos: `20261014070000_mixed_payments` agrega el método MIXED; `20261014071000_mixed_payments` agrega partes, rellena sólo las columnas nuevas de pagos anteriores y valida coherencia. Se preservan importes, cambio, folios, fechas, hashes de reintentos y cortes. Despliegue pendiente de autorización específica. Una vez registrados pagos mixtos, no regresar al Sprint 9 sin adaptar su lectura de este nuevo método; conservar todas las columnas y registros.
 
 ## Cancelación de productos del Sprint 9
 

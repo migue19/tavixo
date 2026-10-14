@@ -38,6 +38,8 @@ export type Ticket = {
     id: string;
     method: string;
     amountCents: number;
+    cashAmountCents: number;
+    cardAmountCents: number;
     receivedCents: number;
     changeCents: number;
     reference: string;
@@ -113,10 +115,20 @@ export function ticketPdf(ticket: Ticket): Promise<Buffer> {
       if (ticket.payment) {
         const p = ticket.payment;
         doc.moveDown();
-        text(`Pago: ${p.method === "CASH" ? "Efectivo" : "Tarjeta"}`, 10, true);
+        text(
+          `Pago: ${p.method === "CASH" ? "Efectivo" : p.method === "MIXED" ? "Mixto" : "Tarjeta"}`,
+          10,
+          true,
+        );
         text(`Pagado: ${money(p.amountCents)}`);
-        if (p.method === "CASH") {
-          text(`Recibido: ${money(p.receivedCents)}`);
+        if (p.method === "MIXED") {
+          text(`Efectivo: ${money(p.cashAmountCents)}`);
+          text(`Tarjeta: ${money(p.cardAmountCents)}`);
+        }
+        if (p.method !== "CARD") {
+          text(
+            `Recibido: ${money(p.method === "MIXED" ? p.receivedCents - p.cardAmountCents : p.receivedCents)}`,
+          );
           text(`Cambio: ${money(p.changeCents)}`);
         }
         if (p.reference) text(`Folio terminal: ${p.reference}`);

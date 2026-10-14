@@ -10,6 +10,7 @@ type Summary = {
   periodEnd: string;
   generatedAt: string;
   paymentCount: number;
+  mixedCount?: number;
   totalCents: number;
   cash: {
     count: number;
@@ -23,6 +24,8 @@ type Summary = {
     id: string;
     method: string;
     amountCents: number;
+    cashAmountCents?: number;
+    cardAmountCents?: number;
     receivedCents: number;
     changeCents: number;
     reference: string;
@@ -313,18 +316,19 @@ export default function Cash({
               <strong>{money(report.totalCents)}</strong>
             </article>
             <article className="card">
-              <span>Efectivo · {report.cash.count} cuentas</span>
+              <span>Efectivo · {report.cash.count} cuentas con efectivo</span>
               <strong>{money(report.cash.totalCents)}</strong>
             </article>
             <article className="card">
-              <span>Tarjeta · {report.card.count} cuentas</span>
+              <span>Tarjeta · {report.card.count} cuentas con tarjeta</span>
               <strong>{money(report.card.totalCents)}</strong>
             </article>
           </div>
           <p>
-            {report.paymentCount} cuentas cobradas. El efectivo corresponde a
-            venta neta, después de devolver el cambio. Cuentas abiertas,
-            canceladas o históricas sin pago quedan fuera.
+            {report.paymentCount} cuentas cobradas ({report.mixedCount ?? 0}{" "}
+            mixtas). El efectivo corresponde a venta neta, después de devolver
+            el cambio. Cuentas abiertas, canceladas o históricas sin pago quedan
+            fuera.
           </p>
           {selected ? (
             <article className="card">
@@ -455,8 +459,25 @@ export default function Cash({
                           #{p.order.number} · {p.order.tableName}
                         </td>
                         <td>{date(p.createdAt)}</td>
-                        <td>{p.method === "CASH" ? "Efectivo" : "Tarjeta"}</td>
-                        <td>{money(p.amountCents)}</td>
+                        <td>
+                          {p.method === "CASH"
+                            ? "Efectivo"
+                            : p.method === "MIXED"
+                              ? "Mixto"
+                              : "Tarjeta"}
+                        </td>
+                        <td>
+                          {money(p.amountCents)}
+                          {p.method === "MIXED" && (
+                            <>
+                              <br />
+                              <small>
+                                Efectivo {money(p.cashAmountCents ?? 0)} ·
+                                Tarjeta {money(p.cardAmountCents ?? 0)}
+                              </small>
+                            </>
+                          )}
+                        </td>
                         <td>
                           {p.actorName}
                           {p.reference && ` · ${p.reference}`}

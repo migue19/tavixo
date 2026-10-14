@@ -53,6 +53,11 @@ export class OrderStatusDto {
 export class CreatePaymentDto {
   @IsUUID("4") requestId!: string;
   @IsEnum(PaymentMethod) method!: PaymentMethod;
+  @ValidateIf((_o, v) => v !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(2147483647)
+  cardAmountCents?: number;
   @IsInt() @Min(0) @Max(2147483647) receivedCents!: number;
   @IsInt() @Min(0) @Max(2147483647) expectedTotalCents!: number;
   @ValidateIf((_o, v) => v !== undefined)

@@ -4,8 +4,10 @@ import type { Order } from "./orders";
 export type Payment = {
   id: string;
   requestId: string;
-  method: "CASH" | "CARD";
+  method: "CASH" | "CARD" | "MIXED";
   amountCents: number;
+  cashAmountCents: number | null;
+  cardAmountCents: number | null;
   receivedCents: number;
   changeCents: number;
   reference: string;
@@ -13,8 +15,9 @@ export type Payment = {
   createdAt: string;
 };
 type Payload = {
+  cardAmountCents?: number;
   requestId: string;
-  method: "CASH" | "CARD";
+  method: "CASH" | "CARD" | "MIXED";
   receivedCents: number;
   expectedTotalCents: number;
   reference: string;
@@ -45,8 +48,9 @@ export default function PaymentPanel({
   onPaid: (order: Order) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState<"CASH" | "CARD">("CASH");
+  const [method, setMethod] = useState<"CASH" | "CARD" | "MIXED">("CASH");
   const [received, setReceived] = useState("");
+  const [cardPart, setCardPart] = useState("");
   const [reference, setReference] = useState("");
   const [confirmed, setConfirmed] = useState(false);
   const [pending, setPending] = useState<Payload | null>(null);
@@ -67,19 +71,39 @@ export default function PaymentPanel({
       setError("");
     }
   }, [order.payment, pending, storageKey]);
-  const value = method === "CARD" ? order.totalCents : cents(received);
+  const cardValue =
+    method === "MIXED"
+      ? cents(cardPart)
+      : method === "CARD"
+        ? order.totalCents
+        : 0;
+  const cashPart = cardValue !== null ? order.totalCents - cardValue : null;
+  const cashReceived = cents(received);
+  useEffect(() => setConfirmed(false), [order.totalCents]);
+  const value =
+    method === "CARD"
+      ? order.totalCents
+      : method === "MIXED"
+        ? cashReceived !== null && cardValue !== null
+          ? cashReceived + cardValue
+          : null
+        : cashReceived;
   const valid =
     value !== null &&
+    value <= 2147483647 &&
     value >= order.totalCents &&
+    (method !== "MIXED" ||
+      (cardValue !== null && cardValue > 0 && cardValue < order.totalCents)) &&
     (method === "CASH" || (reference.trim().length > 0 && confirmed));
   async function pay() {
     if (disabled || locked.current || !canPay || (!pending && !valid)) return;
     const payload = pending ?? {
       requestId: crypto.randomUUID(),
       method,
+      ...(method === "MIXED" ? { cardAmountCents: cardValue! } : {}),
       receivedCents: value!,
       expectedTotalCents: order.totalCents,
-      reference: method === "CARD" ? reference.trim() : "",
+      reference: method !== "CASH" ? reference.trim() : "",
     };
     try {
       sessionStorage.setItem(storageKey, JSON.stringify(payload));
@@ -125,18 +149,43 @@ export default function PaymentPanel({
     return (
       <section className="payment-receipt" aria-label="Pago registrado">
         <h4>
-          Pago registrado · {p.method === "CASH" ? "Efectivo" : "Tarjeta"}
+          Pago registrado ·{" "}
+          {p.method === "CASH"
+            ? "Efectivo"
+            : p.method === "MIXED"
+              ? "Mixto"
+              : "Tarjeta"}
         </h4>
         <dl>
           <div>
             <dt>Total pagado</dt>
             <dd>{money(p.amountCents)}</dd>
           </div>
-          {p.method === "CASH" && (
+          {p.method === "MIXED" && (
             <>
               <div>
-                <dt>Recibido</dt>
-                <dd>{money(p.receivedCents)}</dd>
+                <dt>Parte en efectivo</dt>
+                <dd>{money(p.cashAmountCents ?? 0)}</dd>
+              </div>
+              <div>
+                <dt>Parte en tarjeta</dt>
+                <dd>{money(p.cardAmountCents ?? 0)}</dd>
+              </div>
+            </>
+          )}
+          {p.method !== "CARD" && (
+            <>
+              <div>
+                <dt>
+                  {p.method === "MIXED" ? "Efectivo recibido" : "Recibido"}
+                </dt>
+                <dd>
+                  {money(
+                    p.method === "MIXED"
+                      ? p.receivedCents - (p.cardAmountCents ?? 0)
+                      : p.receivedCents,
+                  )}
+                </dd>
               </div>
               <div>
                 <dt>Cambio</dt>
@@ -201,8 +250,12 @@ export default function PaymentPanel({
                 registro; no vuelvas a cobrar al cliente.
               </p>
               <p>
-                {pending.method === "CASH" ? "Efectivo" : "Tarjeta"} · Recibido{" "}
-                {money(pending.receivedCents)}
+                {pending.method === "CASH"
+                  ? "Efectivo"
+                  : pending.method === "MIXED"
+                    ? "Mixto"
+                    : "Tarjeta"}{" "}
+                · Total recibido {money(pending.receivedCents)}
               </p>
               <button disabled={disabled || busy}>Reintentar registro</button>
             </>
@@ -214,15 +267,40 @@ export default function PaymentPanel({
                   value={method}
                   disabled={disabled || busy}
                   onChange={(e) => {
-                    setMethod(e.target.value as "CASH" | "CARD");
+                    setMethod(e.target.value as "CASH" | "CARD" | "MIXED");
                     setConfirmed(false);
                   }}
                 >
                   <option value="CASH">Efectivo</option>
                   <option value="CARD">Tarjeta · terminal externa</option>
+                  <option value="MIXED">Mixto · efectivo y tarjeta</option>
                 </select>
               </label>
-              {method === "CASH" ? (
+              {method === "MIXED" && (
+                <>
+                  <label>
+                    Importe con tarjeta (MXN)
+                    <input
+                      inputMode="decimal"
+                      value={cardPart}
+                      disabled={disabled || busy}
+                      onChange={(e) => {
+                        setCardPart(e.target.value);
+                        setConfirmed(false);
+                      }}
+                    />
+                  </label>
+                  <p>
+                    Parte en efectivo:{" "}
+                    <strong>
+                      {cashPart !== null && cashPart > 0
+                        ? money(cashPart)
+                        : "—"}
+                    </strong>
+                  </p>
+                </>
+              )}
+              {method !== "CARD" && (
                 <>
                   <label>
                     Efectivo recibido (MXN)
@@ -244,13 +322,18 @@ export default function PaymentPanel({
                     </strong>
                   </p>
                   {value !== null && value < order.totalCents && (
-                    <p>El efectivo recibido debe cubrir el total.</p>
+                    <p>
+                      El efectivo recibido debe cubrir{" "}
+                      {method === "MIXED" ? "la parte en efectivo" : "el total"}
+                      .
+                    </p>
                   )}
                 </>
-              ) : (
+              )}
+              {method !== "CASH" && (
                 <>
                   <p>
-                    Realiza el cobro de {money(order.totalCents)} en tu terminal
+                    Realiza el cobro de {money(cardValue ?? 0)} en tu terminal
                     antes de registrarlo aquí. Tavixo no procesa tarjetas.
                   </p>
                   <label>
@@ -261,7 +344,10 @@ export default function PaymentPanel({
                       value={reference}
                       disabled={disabled || busy}
                       placeholder="Sólo folio, sin datos de la tarjeta"
-                      onChange={(e) => setReference(e.target.value)}
+                      onChange={(e) => {
+                        setReference(e.target.value);
+                        setConfirmed(false);
+                      }}
                     />
                   </label>
                   <label className="check-label">

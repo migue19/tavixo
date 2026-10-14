@@ -187,6 +187,7 @@ model OrderEvent {
 enum PaymentMethod {
   CASH
   CARD
+  MIXED
 }
 model Payment {
   id String @id @default(uuid()) @db.Uuid
@@ -197,6 +198,8 @@ model Payment {
   requestHash String
   method PaymentMethod
   amountCents Int
+  cashAmountCents Int?
+  cardAmountCents Int?
   receivedCents Int
   changeCents Int
   reference String @default("")

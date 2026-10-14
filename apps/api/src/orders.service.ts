@@ -562,6 +562,12 @@ export class OrdersService {
                 id: p.id,
                 method: p.method,
                 amountCents: p.amountCents,
+                cashAmountCents:
+                  p.cashAmountCents ??
+                  (p.method === PaymentMethod.CASH ? p.amountCents : 0),
+                cardAmountCents:
+                  p.cardAmountCents ??
+                  (p.method === PaymentMethod.CARD ? p.amountCents : 0),
                 receivedCents: p.receivedCents,
                 changeCents: p.changeCents,
                 reference: p.reference,
@@ -694,6 +700,9 @@ export class OrdersService {
         JSON.stringify({
           orderId: id,
           method: dto.method,
+          ...(dto.cardAmountCents !== undefined
+            ? { cardAmountCents: dto.cardAmountCents }
+            : {}),
           receivedCents: dto.receivedCents,
           expectedTotalCents: dto.expectedTotalCents,
           reference: dto.reference ?? "",
@@ -742,16 +751,40 @@ export class OrdersService {
         throw new ConflictException(
           "El total cambió; revisa la cuenta antes de cobrar",
         );
+      if (
+        dto.method !== PaymentMethod.MIXED &&
+        dto.cardAmountCents !== undefined
+      )
+        throw new BadRequestException(
+          "El importe parcial con tarjeta corresponde sólo al pago mixto",
+        );
+      const cardAmountCents =
+        dto.method === PaymentMethod.CARD
+          ? order.totalCents
+          : dto.method === PaymentMethod.MIXED
+            ? dto.cardAmountCents
+            : 0;
+      if (
+        cardAmountCents === undefined ||
+        (dto.method === PaymentMethod.MIXED &&
+          (cardAmountCents <= 0 || cardAmountCents >= order.totalCents))
+      )
+        throw new BadRequestException(
+          "El pago mixto requiere importes positivos en efectivo y tarjeta que cubran el total",
+        );
+      const cashAmountCents = order.totalCents - cardAmountCents;
       if (dto.receivedCents < order.totalCents)
         throw new BadRequestException("El importe recibido no cubre la cuenta");
-      if (dto.method === PaymentMethod.CARD) {
-        if (dto.receivedCents !== order.totalCents)
-          throw new BadRequestException(
-            "El importe con tarjeta debe coincidir con el total",
-          );
-        if (!dto.reference?.trim())
-          throw new BadRequestException("Indica el folio de la terminal");
-      } else if (dto.reference)
+      if (
+        dto.method === PaymentMethod.CARD &&
+        dto.receivedCents !== order.totalCents
+      )
+        throw new BadRequestException(
+          "El importe con tarjeta debe coincidir con el total",
+        );
+      if (dto.method !== PaymentMethod.CASH && !dto.reference?.trim())
+        throw new BadRequestException("Indica el folio de la terminal");
+      if (dto.method === PaymentMethod.CASH && dto.reference)
         throw new BadRequestException(
           "El folio de terminal corresponde sólo a pagos con tarjeta",
         );
@@ -764,6 +797,8 @@ export class OrdersService {
           requestHash: hash,
           method: dto.method,
           amountCents: order.totalCents,
+          cashAmountCents,
+          cardAmountCents,
           receivedCents: dto.receivedCents,
           changeCents: dto.receivedCents - order.totalCents,
           reference: dto.reference ?? "",
@@ -781,7 +816,9 @@ export class OrdersService {
               reason:
                 dto.method === PaymentMethod.CASH
                   ? "Cobro en efectivo registrado"
-                  : "Cobro con tarjeta registrado",
+                  : dto.method === PaymentMethod.MIXED
+                    ? "Cobro mixto registrado"
+                    : "Cobro con tarjeta registrado",
             },
           },
         },

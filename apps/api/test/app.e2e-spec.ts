@@ -2375,3 +2375,171 @@ it("makes payment and cancellation mutually exclusive without a stale charge", a
     assert.equal(order.items[0].cancelledQuantity, 1);
   }
 });
+
+it("records mixed payment atomically with separate cash/card amounts, change and one receipt", async () => {
+  const f = await paymentFixture();
+  const body = {
+    ...f.payment,
+    method: "MIXED",
+    cardAmountCents: 5000,
+    receivedCents: 10000,
+    reference: "MIXED-123",
+  };
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.staff.CASHIER)
+    .send(body)
+    .expect(201);
+  assert.equal(paid.body.status, "CLOSED");
+  assert.equal(paid.body.payment.amountCents, 8700);
+  assert.equal(paid.body.payment.cashAmountCents, 3700);
+  assert.equal(paid.body.payment.cardAmountCents, 5000);
+  assert.equal(paid.body.payment.changeCents, 1300);
+  const receipt = await request(app.getHttpServer())
+    .get(`${f.base}/${f.order.id}/ticket?kind=PAYMENT`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(receipt.body.payment.method, "MIXED");
+  assert.equal(receipt.body.payment.cashAmountCents, 3700);
+  assert.equal(receipt.body.payment.cardAmountCents, 5000);
+  assert.equal(receipt.body.payment.reference, "MIXED-123");
+  const repeated = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.staff.CASHIER)
+    .send(body)
+    .expect(201);
+  assert.equal(repeated.body.payment.id, paid.body.payment.id);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({ ...body, cardAmountCents: 4900 })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({ ...body, requestId: randomUUID() })
+    .expect(409);
+  await assert.rejects(
+    db.payment.update({
+      where: { id: paid.body.payment.id },
+      data: { cashAmountCents: 3701 },
+    }),
+  );
+});
+
+it("mixed sales count one account and reconcile only net cash while preserving saved cuts", async () => {
+  const f = await paymentFixture();
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({
+      ...f.payment,
+      method: "MIXED",
+      cardAmountCents: 5000,
+      receivedCents: 10000,
+      reference: "Terminal mixta",
+    })
+    .expect(201);
+  await db.payment.update({
+    where: { id: paid.body.payment.id },
+    data: { createdAt: new Date("2026-01-15T12:00:00Z") },
+  });
+  const base = `/api/restaurant/branches/${f.branch.id}/cash`;
+  const summary = await request(app.getHttpServer())
+    .get(`${base}/summary?day=2026-01-15`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(summary.body.totalCents, 8700);
+  assert.equal(summary.body.paymentCount, 1);
+  assert.equal(summary.body.mixedCount, 1);
+  assert.equal(summary.body.cash.totalCents, 3700);
+  assert.equal(summary.body.card.totalCents, 5000);
+  assert.equal(summary.body.cash.receivedCents, 5000);
+  assert.equal(summary.body.cash.changeCents, 1300);
+  assert.equal(summary.body.cash.count, 1);
+  assert.equal(summary.body.card.count, 1);
+  const cut = await request(app.getHttpServer())
+    .post(`${base}/cuts`)
+    .set("Authorization", f.auth)
+    .send({
+      day: "2026-01-15",
+      requestId: randomUUID(),
+      openingCents: 1000,
+      countedCents: 4700,
+      expectedPaymentCount: 1,
+      expectedTotalCents: 8700,
+    })
+    .expect(201);
+  assert.equal(cut.body.snapshot.expectedCents, 4700);
+  assert.equal(cut.body.snapshot.differenceCents, 0);
+  assert.equal(cut.body.snapshot.payments[0].cardAmountCents, 5000);
+});
+
+it("rejects invalid mixed splits, insufficient received cash, missing folio and unauthorized roles", async () => {
+  const f = await paymentFixture();
+  const body = {
+    ...f.payment,
+    method: "MIXED",
+    cardAmountCents: 5000,
+    receivedCents: 10000,
+    reference: "MIXED-123",
+  };
+  const send = (data: object, auth = f.auth) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", auth)
+      .send(data);
+  for (const override of [
+    { cardAmountCents: 0 },
+    { cardAmountCents: 8700 },
+    { cardAmountCents: 9000 },
+    { cardAmountCents: null },
+    { cardAmountCents: 0.5 },
+    { receivedCents: 8699 },
+    { reference: " " },
+    { cashAmountCents: 3700 },
+  ])
+    await send({ ...body, ...override }).expect(400);
+  const { cardAmountCents: _part, ...missing } = body;
+  await send(missing).expect(400);
+  await send({ ...f.payment, cardAmountCents: 5000 }).expect(400);
+  for (const role of ["WAITER", "KITCHEN"])
+    await send(body, f.staff[role]).expect(403);
+  await request(app.getHttpServer()).post(f.path).send(body).expect(401);
+  assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 0);
+});
+
+it("concurrent mixed submissions register exactly one payment and preserve legacy retry contracts", async () => {
+  const f = await paymentFixture();
+  const body = {
+    ...f.payment,
+    method: "MIXED",
+    cardAmountCents: 5000,
+    receivedCents: 10000,
+    reference: "MIXED-123",
+  };
+  const send = (data: object) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(data);
+  const repeats = await Promise.all([send(body), send(body)]);
+  assert.deepEqual(
+    repeats.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(repeats[0].body.payment.id, repeats[1].body.payment.id);
+  assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 1);
+  const legacy = await paymentFixture();
+  const original = await request(app.getHttpServer())
+    .post(legacy.path)
+    .set("Authorization", legacy.auth)
+    .send(legacy.payment)
+    .expect(201);
+  const retry = await request(app.getHttpServer())
+    .post(legacy.path)
+    .set("Authorization", legacy.auth)
+    .send(legacy.payment)
+    .expect(201);
+  assert.equal(original.body.payment.id, retry.body.payment.id);
+});
