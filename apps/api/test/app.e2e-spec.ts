@@ -618,3 +618,300 @@ it("lets a user change their password and revokes all their sessions", async () 
     })
     .expect(201);
 });
+
+it("manages menu with integer prices, soft states and category/branch isolation", async () => {
+  const owner = await login();
+  const auth = `Bearer ${owner.body.accessToken}`;
+  const branch = await db.branch.findFirstOrThrow({
+    where: { restaurantId: a, active: true },
+  });
+  const foreign = await db.branch.findFirstOrThrow({
+    where: { restaurantId: b },
+  });
+  const sameTenantOther = await db.branch.create({
+    data: { restaurantId: a, name: "Catalog Other" },
+  });
+  const base = `/api/restaurant/branches/${branch.id}`;
+  const category = await request(app.getHttpServer())
+    .post(`${base}/categories`)
+    .set("Authorization", auth)
+    .send({ name: "Bebidas" })
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(`${base}/categories`)
+    .set("Authorization", auth)
+    .send({ name: "Bebidas" })
+    .expect(409);
+  await request(app.getHttpServer())
+    .post(`${base}/categories`)
+    .set("Authorization", auth)
+    .send({ name: "   " })
+    .expect(400);
+  const otherCategory = await db.menuCategory.create({
+    data: { restaurantId: a, branchId: sameTenantOther.id, name: "Other" },
+  });
+  await request(app.getHttpServer())
+    .post(`${base}/products`)
+    .set("Authorization", auth)
+    .send({
+      name: "Wrong branch",
+      categoryId: otherCategory.id,
+      priceCents: 100,
+    })
+    .expect(400);
+  for (const value of [-1, 12.5, 100000000, null, "100"]) {
+    await request(app.getHttpServer())
+      .post(`${base}/products`)
+      .set("Authorization", auth)
+      .send({
+        name: "Invalid price",
+        categoryId: category.body.id,
+        priceCents: value,
+      })
+      .expect(400);
+  }
+  const product = await request(app.getHttpServer())
+    .post(`${base}/products`)
+    .set("Authorization", auth)
+    .send({
+      name: "Agua",
+      description: "Test fixture",
+      categoryId: category.body.id,
+      priceCents: 12345,
+    })
+    .expect(201);
+  assert.equal(product.body.priceCents, 12345);
+  await request(app.getHttpServer())
+    .post(`${base}/products`)
+    .set("Authorization", auth)
+    .send({ name: "Agua", categoryId: category.body.id, priceCents: 0 })
+    .expect(409);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ categoryId: otherCategory.id })
+    .expect(400);
+  await assert.rejects(
+    db.product.update({
+      where: { id: product.body.id },
+      data: { categoryId: otherCategory.id },
+    }),
+  );
+  await assert.rejects(
+    db.product.update({
+      where: { id: product.body.id },
+      data: { priceCents: -1 },
+    }),
+  );
+  await request(app.getHttpServer())
+    .patch(
+      `/api/restaurant/branches/${sameTenantOther.id}/products/${product.body.id}`,
+    )
+    .set("Authorization", auth)
+    .send({ priceCents: 1 })
+    .expect(404);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${foreign.id}/products`)
+    .set("Authorization", auth)
+    .expect(404);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ restaurantId: b, priceCents: 1 })
+    .expect(400);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ priceCents: null })
+    .expect(400);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ priceCents: 0, available: false })
+    .expect(200);
+  const listed = await request(app.getHttpServer())
+    .get(`${base}/products`)
+    .set("Authorization", auth)
+    .expect(200);
+  assert.equal(listed.body[0].priceCents, 0);
+  assert.equal(listed.body[0].available, false);
+  await request(app.getHttpServer())
+    .patch(`${base}/categories/${category.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: false })
+    .expect(200);
+  await request(app.getHttpServer())
+    .post(`${base}/products`)
+    .set("Authorization", auth)
+    .send({
+      name: "Hidden parent",
+      categoryId: category.body.id,
+      priceCents: 1,
+    })
+    .expect(400);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: true })
+    .expect(400);
+});
+it("limits operational catalog reads to assigned branch and hides inactive entities", async () => {
+  const owner = await login();
+  const auth = `Bearer ${owner.body.accessToken}`;
+  const member = await db.membership.findFirstOrThrow({
+    where: { restaurantId: a, user: { email: waiterEmail } },
+  });
+  assert.ok(member.branchId);
+  const base = `/api/restaurant/branches/${member.branchId}`;
+  const entered = await request(app.getHttpServer())
+    .post("/api/auth/login")
+    .set("X-Forwarded-For", "192.0.2.231")
+    .set("Origin", origin)
+    .send({
+      email: waiterEmail,
+      password: "replacement-password-long",
+      restaurantSlug: slug,
+    })
+    .expect(201);
+  const staff = `Bearer ${entered.body.accessToken}`;
+  const other = await db.branch.findFirstOrThrow({
+    where: { restaurantId: a, id: { not: member.branchId! }, active: true },
+  });
+  for (const kind of ["categories", "products", "tables"]) {
+    await request(app.getHttpServer())
+      .get(`/api/restaurant/branches/${other.id}/${kind}`)
+      .set("Authorization", staff)
+      .expect(403);
+    const listed = await request(app.getHttpServer())
+      .get(`${base}/${kind}`)
+      .set("Authorization", staff)
+      .expect(200);
+    assert.equal(listed.body.length, 0);
+  }
+  await request(app.getHttpServer())
+    .post(`${base}/categories`)
+    .set("Authorization", staff)
+    .send({ name: "Forbidden" })
+    .expect(403);
+  const category = await request(app.getHttpServer())
+    .post(`${base}/categories`)
+    .set("Authorization", auth)
+    .send({ name: "Comida" })
+    .expect(201);
+  const product = await request(app.getHttpServer())
+    .post(`${base}/products`)
+    .set("Authorization", auth)
+    .send({
+      name: "Fixture product",
+      categoryId: category.body.id,
+      priceCents: 99,
+    })
+    .expect(201);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", staff)
+    .send({ priceCents: 1 })
+    .expect(403);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ available: false })
+    .expect(200);
+  const available = await request(app.getHttpServer())
+    .get(`${base}/products`)
+    .set("Authorization", staff)
+    .expect(200);
+  assert.equal(available.body[0].available, false);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: false })
+    .expect(200);
+  const hidden = await request(app.getHttpServer())
+    .get(`${base}/products`)
+    .set("Authorization", staff)
+    .expect(200);
+  assert.equal(hidden.body.length, 0);
+  await request(app.getHttpServer())
+    .patch(`${base}/products/${product.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: true })
+    .expect(200);
+  await request(app.getHttpServer())
+    .patch(`${base}/categories/${category.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: false })
+    .expect(200);
+  const parentHidden = await request(app.getHttpServer())
+    .get(`${base}/products`)
+    .set("Authorization", staff)
+    .expect(200);
+  assert.equal(parentHidden.body.length, 0);
+});
+it("manages branch tables and rejects capacity, duplicates and inactive branch writes", async () => {
+  const owner = await login();
+  const auth = `Bearer ${owner.body.accessToken}`;
+  const branch = await db.branch.findFirstOrThrow({
+    where: { restaurantId: a, active: true },
+  });
+  const base = `/api/restaurant/branches/${branch.id}`;
+  for (const capacity of [0, 101, 1.5, null]) {
+    await request(app.getHttpServer())
+      .post(`${base}/tables`)
+      .set("Authorization", auth)
+      .send({ name: "Invalid", capacity })
+      .expect(400);
+  }
+  const table = await request(app.getHttpServer())
+    .post(`${base}/tables`)
+    .set("Authorization", auth)
+    .send({ name: "Mesa 1", capacity: 4 })
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(`${base}/tables`)
+    .set("Authorization", auth)
+    .send({ name: "Mesa 1", capacity: 4 })
+    .expect(409);
+  await assert.rejects(
+    db.diningTable.update({
+      where: { id: table.body.id },
+      data: { capacity: 0 },
+    }),
+  );
+  const other = await db.branch.findFirstOrThrow({
+    where: { restaurantId: a, id: { not: branch.id }, active: true },
+  });
+  await request(app.getHttpServer())
+    .patch(`/api/restaurant/branches/${other.id}/tables/${table.body.id}`)
+    .set("Authorization", auth)
+    .send({ capacity: 8 })
+    .expect(404);
+  await request(app.getHttpServer())
+    .patch(`${base}/tables/${table.body.id}`)
+    .set("Authorization", auth)
+    .send({ capacity: 8, active: false })
+    .expect(200);
+  const listed = await request(app.getHttpServer())
+    .get(`${base}/tables`)
+    .set("Authorization", auth)
+    .expect(200);
+  assert.equal(listed.body[0].capacity, 8);
+  assert.equal(listed.body[0].active, false);
+  await request(app.getHttpServer())
+    .patch(`${base}/tables/${table.body.id}`)
+    .set("Authorization", auth)
+    .send({ active: true })
+    .expect(200);
+  const inactive = await db.branch.create({
+    data: { restaurantId: a, name: "Inactive catalog", active: false },
+  });
+  await request(app.getHttpServer())
+    .post(`/api/restaurant/branches/${inactive.id}/tables`)
+    .set("Authorization", auth)
+    .send({ name: "No", capacity: 4 })
+    .expect(400);
+  await request(app.getHttpServer())
+    .get("/api/restaurant/branches/invalid-uuid/tables")
+    .set("Authorization", auth)
+    .expect(400);
+});

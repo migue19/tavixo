@@ -39,6 +39,9 @@ model Branch {
   createdAt DateTime @default(now())
   restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   memberships Membership[]
+  categories MenuCategory[]
+  products Product[]
+  tables DiningTable[]
   @@unique([id, restaurantId])
   @@unique([restaurantId, name])
   @@index([restaurantId, active])
@@ -68,4 +71,45 @@ model RefreshSession {
   membership Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
   @@index([familyId])
   @@index([expiresAt])
+}
+
+model MenuCategory {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  name String
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  products Product[]
+  @@unique([id, branchId, restaurantId])
+  @@unique([branchId, name])
+}
+model Product {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  categoryId String @db.Uuid
+  name String
+  description String @default("")
+  priceCents Int
+  active Boolean @default(true)
+  available Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  category MenuCategory @relation(fields: [categoryId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+  @@unique([branchId, name])
+  @@index([restaurantId, branchId, active])
+}
+model DiningTable {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  name String
+  capacity Int @default(4)
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Cascade)
+  @@unique([branchId, name])
+  @@index([restaurantId, branchId, active])
 }

@@ -1,5 +1,6 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import Catalog from "./catalog";
 export type Session = {
   accessToken: string;
   expiresIn: number;
@@ -177,6 +178,8 @@ export default function Management({
         {[
           ["overview", "Resumen"],
           ["branches", "Sucursales"],
+          ["menu", "Menú"],
+          ["tables", "Mesas"],
           ...(administrative ? [["team", "Equipo"]] : []),
           ["account", "Mi cuenta"],
         ].map(([key, label]) => (
@@ -631,6 +634,15 @@ export default function Management({
             </form>
           </article>
         </div>
+      )}
+      {(tab === "menu" || tab === "tables") && (
+        <Catalog
+          key={`${session.restaurant.id}:${tab}`}
+          session={session}
+          branches={branches}
+          online={online}
+          mode={tab}
+        />
       )}
       {tab === "account" && (
         <article className="card account-card">

@@ -13,6 +13,8 @@ import { AuthController } from "./auth.controller";
 import { RestaurantController } from "./restaurant.controller";
 import { ManagementController } from "./management.controller";
 import { ManagementService } from "./management.service";
+import { CatalogController } from "./catalog.controller";
+import { CatalogService } from "./catalog.service";
 import { config } from "./config";
 @Controller("health")
 class HealthController {
@@ -49,12 +51,14 @@ class HealthController {
     RestaurantController,
     ManagementController,
     HealthController,
+    CatalogController,
   ],
   providers: [
     PrismaService,
     AuthService,
     AuthGuard,
     ManagementService,
+    CatalogService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

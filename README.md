@@ -1,4 +1,4 @@
-# Tavixo · Sprint 2
+# Tavixo · Sprint 3
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -8,7 +8,7 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
-Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Mesas, comandas, cocina en tiempo real y cobros llegarán en los siguientes sprints. No hay registro público ni autoasignación de roles.
+Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Comandas, ocupación de mesas, cocina en tiempo real y cobros llegarán en los siguientes sprints. No hay registro público ni autoasignación de roles.
 
 ## Administración del Sprint 2
 
@@ -36,6 +36,16 @@ La migración `20261013010000_management` agrega sucursales, crea Sucursal Princ
 | PATCH | /api/me/password | Propia identidad, currentPassword/newPassword |
 
 Ver [SPRINT2_RESULTS.md](SPRINT2_RESULTS.md) para la verificación de esta versión.
+
+## Menú y mesas del Sprint 3
+
+Las pestañas Menú y Mesas muestran un selector de sucursal. OWNER/MANAGER pueden crear, editar y desactivar/reactivar categorías, productos y mesas. Los roles operativos sólo consultan su sucursal asignada. Sus vistas omiten categorías/productos/mesas inactivos; un producto agotado sigue visible como no disponible. Los administradores pueden leer catálogo de sucursales inactivas para revisión, pero no escribirlo.
+
+El catálogo es independiente por sucursal. Al desactivar una categoría, sus productos dejan de aparecer al equipo operativo sin perder sus registros. Productos guardan precios enteros `priceCents` en MXN (0 a 99,999,999 centavos); la interfaz acepta hasta dos decimales. PostgreSQL también valida rangos y relaciones compuestas de restaurante/sucursal/categoría. Mesas tienen nombre, capacidad (1–100) y estado activo; la ocupación dependerá de las órdenes del siguiente sprint, no de un indicador manual.
+
+Las rutas base son `/api/restaurant/branches/:branchId/categories`, `/products` y `/tables`: GET para consulta; POST para alta; PATCH `/:id` para editar. Sólo OWNER/MANAGER escriben. UUID inválidos, campos extra y valores null inválidos devuelven 400; nombres duplicados por sucursal, 409; acceso de personal a otra sucursal, 403; recursos fuera del restaurante, 404.
+
+No se cargan productos, precios o mesas ficticios en el piloto. La migración aditiva `20261013020000_catalog` no modifica cuentas, sucursales o sesiones existentes. Ver [SPRINT3_RESULTS.md](SPRINT3_RESULTS.md).
 
 ## Estructura
 
