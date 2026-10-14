@@ -1,6 +1,6 @@
 # Sprint 9 · Cancelación auditada de productos
 
-Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendiente de autorización específica.
+Implementado y verificado localmente el 14 de octubre de 2026. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -29,3 +29,15 @@ Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendie
 ## Despliegue y reversión
 
 Migración aditiva 20261014060000_item_cancellations; no cambia Compose, Nginx ni puertos. Requiere autorización específica, respaldo e imágenes anteriores. No borrar auditoría ni campos nuevos. Sprint 8 desconoce cantidades canceladas: tras operar esta función, evaluar cuentas afectadas antes de volver al código anterior para evitar tickets con cantidades originales y total ajustado.
+
+## Producción verificada
+
+- Aplicación 8fd2e21 desplegada con Node 24 en https://app.birriaelcachanilla.com.mx.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint9-20261014T190336Z`: dump validado con pg_restore --list, fuente, entorno y snapshot. Imágenes de reversión `tavixo-api:pre-sprint9` y `tavixo-web:pre-sprint9` conservadas; no se requirió reversión.
+- La comprobación previa detectó capacidades actuales de 4 lugares en las cuatro mesas y se ajustó para preservar esos valores. El primer intento se detuvo antes de modificar aplicaciones o esquema.
+- Migración 20261014060000_item_cancellations aplicada. Todas las líneas anteriores con cancelledQuantity cero; ninguna cancelación inventada.
+- Comparación exacta de datos anteriores excluyendo únicamente la columna nueva: productos/categorías, cuatro mesas, sucursales, membresías, tres cuentas, líneas, rondas, eventos, pagos y cortes conservados.
+- Sólo API/web recreadas y saludables. PostgreSQL y demás contenedores conservaron IDs y tiempos de arranque; hashes de Nginx iguales. Puertos 6000/6001 ligados a 127.0.0.1 y base privada.
+- 40 comprobaciones públicas HTTPS aprobadas: TLS/PWA, auth/refresh/revocación, catálogo/mesas/rondas, tickets/PDF, caja/cortes y validación/autorización de cancelaciones sin escrituras válidas de prueba.
+- Navegador público: sesión restaurada, historial de cuentas pagadas $199 y $120 preservado y sin botones para cancelar productos pagados. No había cuentas abiertas; no se creó ninguna para probar. Captura `../tavixo-sprint9-produccion.jpg`.
+- No se hicieron cancelaciones, pedidos, pagos ni cortes de prueba en producción. Cancelación parcial/completa y cuenta digital ajustada se verificaron en demo local aislada.
