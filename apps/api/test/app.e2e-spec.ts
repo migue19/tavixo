@@ -79,6 +79,11 @@ before(
 );
 after(async () => {
   if (db) {
+    await db.order.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
     await db.restaurant.deleteMany({
       where: { id: { in: [a, b, ...extraRestaurants].filter(Boolean) } },
     });
@@ -914,4 +919,320 @@ it("manages branch tables and rejects capacity, duplicates and inactive branch w
     .get("/api/restaurant/branches/invalid-uuid/tables")
     .set("Authorization", auth)
     .expect(400);
+});
+
+async function orderFixture() {
+  const branch = await db.branch.create({
+    data: { restaurantId: a, name: `Orders ${randomUUID()}` },
+  });
+  const other = await db.branch.create({
+    data: { restaurantId: b, name: `Foreign ${randomUUID()}` },
+  });
+  const category = await db.menuCategory.create({
+    data: { restaurantId: a, branchId: branch.id, name: "Tacos" },
+  });
+  const product = await db.product.create({
+    data: {
+      restaurantId: a,
+      branchId: branch.id,
+      categoryId: category.id,
+      name: "Taco",
+      priceCents: 2900,
+    },
+  });
+  const table = await db.diningTable.create({
+    data: { restaurantId: a, branchId: branch.id, name: "Mesa 1" },
+  });
+  const table2 = await db.diningTable.create({
+    data: { restaurantId: a, branchId: branch.id, name: "Mesa 2" },
+  });
+  const foreignCategory = await db.menuCategory.create({
+    data: { restaurantId: b, branchId: other.id, name: "Foreign" },
+  });
+  const foreignProduct = await db.product.create({
+    data: {
+      restaurantId: b,
+      branchId: other.id,
+      categoryId: foreignCategory.id,
+      name: "Foreign",
+      priceCents: 100,
+    },
+  });
+  const foreignTable = await db.diningTable.create({
+    data: { restaurantId: b, branchId: other.id, name: "Foreign" },
+  });
+  const owner = await login();
+  const auth = `Bearer ${owner.body.accessToken}`;
+  const staff: Record<string, string> = {};
+  const hashed = await hashPassword(password);
+  for (const role of [Role.WAITER, Role.CASHIER, Role.KITCHEN, Role.MANAGER]) {
+    const user = await db.user.create({
+      data: {
+        email: `${role.toLowerCase()}-${randomUUID()}@example.com`,
+        name: role,
+        passwordHash: hashed,
+      },
+    });
+    users.push(user.id);
+    await db.membership.create({
+      data: { userId: user.id, restaurantId: a, branchId: branch.id, role },
+    });
+    const res = await login(user.email);
+    assert.equal(res.status, 201);
+    staff[role] = `Bearer ${res.body.accessToken}`;
+  }
+  return {
+    branch,
+    other,
+    category,
+    product,
+    table,
+    table2,
+    foreignProduct,
+    foreignTable,
+    auth,
+    staff,
+    base: `/api/restaurant/branches/${branch.id}/orders`,
+    body: {
+      requestId: randomUUID(),
+      tableId: table.id,
+      notes: "Para compartir",
+      items: [{ productId: product.id, quantity: 3, notes: "Sin cebolla" }],
+    },
+  };
+}
+it("creates immutable priced orders, retries once and isolates tenant/branch", async () => {
+  const f = await orderFixture();
+  const first = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.staff.WAITER)
+    .send(f.body)
+    .expect(201);
+  assert.equal(first.body.totalCents, 8700);
+  assert.equal(first.body.items[0].unitPriceCents, 2900);
+  assert.equal(first.body.events[0].actorName, "WAITER");
+  assert.equal(first.body.status, "SENT");
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { priceCents: 4300, name: "Taco grande", available: false },
+  });
+  const retry = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.staff.WAITER)
+    .send(f.body)
+    .expect(201);
+  assert.equal(retry.body.id, first.body.id);
+  assert.equal(retry.body.totalCents, 8700);
+  assert.equal(retry.body.items[0].name, "Taco");
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, notes: "Changed" })
+    .expect(409);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.other.id}/orders`)
+    .set("Authorization", f.auth)
+    .expect(404);
+  const sibling = await db.branch.create({
+    data: { restaurantId: a, name: `Sibling ${randomUUID()}` },
+  });
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${sibling.id}/orders`)
+    .set("Authorization", f.staff.WAITER)
+    .expect(403);
+  await request(app.getHttpServer())
+    .patch(
+      `/api/restaurant/branches/${sibling.id}/orders/${first.body.id}/status`,
+    )
+    .set("Authorization", f.auth)
+    .send({ status: "PREPARING", expectedStatus: "SENT" })
+    .expect(404);
+  const list = await request(app.getHttpServer())
+    .get(f.base)
+    .set("Authorization", f.staff.KITCHEN)
+    .expect(200);
+  assert.equal(list.body.length, 1);
+});
+it("rejects unavailable or foreign menu/table, duplicate lines and invalid quantities or client prices", async () => {
+  const f = await orderFixture();
+  const send = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.base)
+      .set("Authorization", f.auth)
+      .send(body);
+  for (const quantity of [0, 101, 1.5, null])
+    await send({
+      ...f.body,
+      items: [{ productId: f.product.id, quantity }],
+    }).expect(400);
+  await send({ ...f.body, items: [] }).expect(400);
+  await send({ ...f.body, items: [...f.body.items, ...f.body.items] }).expect(
+    400,
+  );
+  await send({ ...f.body, totalCents: 1 }).expect(400);
+  await send({
+    ...f.body,
+    items: [{ productId: f.product.id, quantity: 1, unitPriceCents: 1 }],
+  }).expect(400);
+  await send({
+    ...f.body,
+    items: [{ productId: f.foreignProduct.id, quantity: 1 }],
+  }).expect(400);
+  await send({ ...f.body, tableId: f.foreignTable.id }).expect(400);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { available: false },
+  });
+  await send(f.body).expect(400);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { available: true },
+  });
+  await db.menuCategory.update({
+    where: { id: f.category.id },
+    data: { active: false },
+  });
+  await send(f.body).expect(400);
+  await db.menuCategory.update({
+    where: { id: f.category.id },
+    data: { active: true },
+  });
+  await db.diningTable.update({
+    where: { id: f.table.id },
+    data: { active: false },
+  });
+  await send(f.body).expect(400);
+  await db.diningTable.update({
+    where: { id: f.table.id },
+    data: { active: true },
+  });
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { priceCents: 99999999 },
+  });
+  await send({
+    ...f.body,
+    items: [{ productId: f.product.id, quantity: 100 }],
+  }).expect(400);
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.staff.KITCHEN)
+    .send(f.body)
+    .expect(403);
+  assert.equal(await db.order.count({ where: { branchId: f.branch.id } }), 0);
+});
+it("allows only authorized state transitions, records audit and releases table after closure", async () => {
+  const f = await orderFixture();
+  const created = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.staff.CASHIER)
+    .send(f.body)
+    .expect(201);
+  const path = `${f.base}/${created.body.id}/status`;
+  const change = (token: string, status: string, expectedStatus: string) =>
+    request(app.getHttpServer())
+      .patch(path)
+      .set("Authorization", token)
+      .send({ status, expectedStatus });
+  await change(f.staff.WAITER, "PREPARING", "SENT").expect(403);
+  await change(f.staff.KITCHEN, "READY", "SENT").expect(409);
+  await change(f.staff.KITCHEN, "PREPARING", "SENT").expect(200);
+  await change(f.staff.MANAGER, "PREPARING", "SENT").expect(409);
+  await change(f.staff.KITCHEN, "READY", "PREPARING").expect(200);
+  await change(f.staff.KITCHEN, "DELIVERED", "READY").expect(403);
+  await change(f.staff.WAITER, "DELIVERED", "READY").expect(200);
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(409);
+  const closed = await change(f.staff.CASHIER, "CLOSED", "DELIVERED").expect(
+    200,
+  );
+  assert.equal(closed.body.events.length, 5);
+  assert.deepEqual(
+    closed.body.events.map((e: { status: string }) => e.status),
+    ["SENT", "PREPARING", "READY", "DELIVERED", "CLOSED"],
+  );
+  await change(f.auth, "SENT", "CLOSED").expect(409);
+  const next = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+  assert.equal(next.body.number, 2);
+});
+it("requires manager cancellation reason and rejects terminal cancellation", async () => {
+  const f = await orderFixture();
+  const order = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send(f.body)
+    .expect(201);
+  const path = `${f.base}/${order.body.id}/status`;
+  const body = {
+    status: "CANCELLED",
+    expectedStatus: "SENT",
+    reason: "Cliente se retiró",
+  };
+  for (const role of ["WAITER", "CASHIER", "KITCHEN"])
+    await request(app.getHttpServer())
+      .patch(path)
+      .set("Authorization", f.staff[role])
+      .send(body)
+      .expect(403);
+  await request(app.getHttpServer())
+    .patch(path)
+    .set("Authorization", f.auth)
+    .send({ ...body, reason: " " })
+    .expect(400);
+  const cancelled = await request(app.getHttpServer())
+    .patch(path)
+    .set("Authorization", f.staff.MANAGER)
+    .send(body)
+    .expect(200);
+  assert.equal(cancelled.body.events[1].reason, body.reason);
+  await request(app.getHttpServer())
+    .patch(path)
+    .set("Authorization", f.auth)
+    .send({ ...body, expectedStatus: "CANCELLED" })
+    .expect(409);
+});
+it("serializes simultaneous submissions and enforces database tenant references", async () => {
+  const f = await orderFixture();
+  const send = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.base)
+      .set("Authorization", f.auth)
+      .send(body);
+  const retries = await Promise.all([send(f.body), send(f.body)]);
+  assert.deepEqual(
+    retries.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(retries[0].body.id, retries[1].body.id);
+  const races = await Promise.all([
+    send({ ...f.body, tableId: f.table2.id, requestId: randomUUID() }),
+    send({ ...f.body, tableId: f.table2.id, requestId: randomUUID() }),
+  ]);
+  assert.deepEqual(races.map((r) => r.status).sort(), [201, 409]);
+  assert.equal(await db.order.count({ where: { branchId: f.branch.id } }), 2);
+  await assert.rejects(
+    db.order.update({
+      where: { id: retries[0].body.id },
+      data: { tableId: f.foreignTable.id },
+    }),
+  );
+  await assert.rejects(
+    db.orderItem.update({
+      where: { id: retries[0].body.items[0].id },
+      data: { productId: f.foreignProduct.id },
+    }),
+  );
+  await assert.rejects(
+    db.orderItem.update({
+      where: { id: retries[0].body.items[0].id },
+      data: { quantity: 0 },
+    }),
+  );
 });

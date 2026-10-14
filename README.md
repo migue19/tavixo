@@ -1,4 +1,4 @@
-# Tavixo · Sprint 3
+# Tavixo · Sprint 4
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -8,7 +8,26 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
-Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Comandas, ocupación de mesas, cocina en tiempo real y cobros llegarán en los siguientes sprints. No hay registro público ni autoasignación de roles.
+Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Los cobros llegarán en el siguiente sprint. No hay registro público ni autoasignación de roles.
+
+## Comandas y cocina del Sprint 4
+
+- **Comandas:** selecciona una mesa libre, productos, cantidades e indicaciones. El envío abre la cuenta y la ocupa. Sólo OWNER/MANAGER/WAITER/CASHIER crean comandas.
+- **Cocina:** OWNER/MANAGER/KITCHEN avanzan de Enviada a En preparación y Lista. WAITER/CASHIER y administradores registran Entregada y cierran la cuenta para liberar la mesa.
+- **Cancelación:** sólo OWNER/MANAGER, motivo obligatorio y registro de actividad. No se puede alterar una cuenta terminada.
+- Los nombres, precios y total se congelan al enviar. La API calcula el total desde productos activos/disponibles y categorías activas de la misma sucursal. Rechaza precios del cliente, cantidades inválidas y productos repetidos en líneas separadas.
+- Referencia UUID por envío; reintentar el mismo cuerpo devuelve la misma comanda, aunque el precio del menú haya cambiado. Reusar la referencia con otro cuerpo devuelve 409. La web conserva únicamente el envío pendiente en sessionStorage, sin tokens, por restaurante/sucursal, y lo elimina al confirmarse; no guarda respuestas API ni permite enviar sin conexión.
+- Una cuenta abierta por mesa, protegida por transacción y por índice único parcial de PostgreSQL. Cambios de estado requieren `expectedStatus` para detectar acciones concurrentes. Historial con nombre del actor, fecha y motivo; consulta de todas las abiertas más las últimas 50 terminadas.
+- Precio unitario de 0 a 99999999 centavos; 1–100 unidades por producto, máximo 100 líneas y total hasta 2147483647 centavos. Moneda MXN.
+- Actualización automática por consultas cada 5 segundos; este sprint no incorpora Socket.IO. Una comanda equivale a una cuenta completa: agregar rondas, dividir cuentas, cobros, tickets e inventario quedan pendientes. Cerrar cuenta **no registra ni confirma un pago**; la interfaz avisa antes de liberar la mesa.
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| GET | /api/restaurant/branches/:branchId/orders | Admin: sucursal del restaurante; operativo: asignada |
+| POST | /api/restaurant/branches/:branchId/orders | OWNER/MANAGER/WAITER/CASHIER; requestId, tableId, items, notes |
+| PATCH | /api/restaurant/branches/:branchId/orders/:id/status | Según transición; status, expectedStatus, reason para cancelar |
+
+Migración aditiva `20261014020000_orders`: crea Order/OrderItem/OrderEvent, índices y claves compuestas. No cambia productos, precios, categorías ni mesas existentes. Conserva referencias de historial: las entidades del catálogo se desactivan, no se borran. Reversión de aplicaciones al Sprint 3 posible conservando el esquema aditivo; las cuentas del Sprint 4 no estarán visibles en la versión anterior. Respaldar antes de migrar y no eliminar datos de producción.
 
 ## Administración del Sprint 2
 

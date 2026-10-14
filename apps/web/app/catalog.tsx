@@ -646,8 +646,8 @@ export default function Catalog({
                   <button disabled={disabled}>Agregar mesa</button>
                 </form>
                 <p>
-                  La apertura de cuentas y los estados de ocupación llegarán con
-                  las comandas en el siguiente sprint.
+                  Consulta las mesas libres y ocupadas al crear una comanda en
+                  la pestaña Comandas.
                 </p>
               </article>
             )}

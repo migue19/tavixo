@@ -1,0 +1,35 @@
+# Sprint 4 · Comandas y cocina
+
+Implementado y verificado localmente el 13 de octubre de 2026 (America/Mexico_City). Pendiente autorización específica para desplegar este sprint en el VPS.
+
+## Resultado
+
+- Captura por mesa libre usando el menú de la sucursal; cantidades e indicaciones por producto y notas generales.
+- Estado Enviada → En preparación → Lista → Entregada → Cuenta cerrada. Cancelación por administrador con motivo obligatorio.
+- Precio/nombre/total congelados al enviar; cálculo exclusivo en servidor, moneda MXN.
+- Una cuenta abierta por mesa. El cierre/cancelación libera la mesa; cerrar no registra pagos y requiere confirmación dentro de la tarjeta.
+- Tablero Cocina y vista Comandas con actualización cada 5 segundos, sin Socket.IO en esta entrega.
+- Historial de estados con actor/fecha/motivo. Últimas 50 cuentas terminadas y todas las abiertas.
+- Referencia UUID de envío y reintento idempotente. El envío pendiente se conserva en sessionStorage por restaurante/sucursal, sin tokens; se limpia al confirmar. No se permite enviar sin internet.
+- Aislamiento de restaurante/sucursal y roles comprobados en servidor. Escrituras serializadas con bloqueo del restaurante y nueva comprobación de la membresía.
+- Migración aditiva `20261014020000_orders`: nuevas tablas, índices, claves compuestas y CHECK de cantidades/precios. No modifica el catálogo existente.
+
+## Verificación
+
+- **22 pruebas aprobadas:** 1 de contraseñas y 21 de integración, cero fallos.
+- Regresión completa de autenticación, refresh, roles, sucursales, equipo y catálogo.
+- Snapshot de precio después de editar/agotar el producto; reintentos devuelven una sola comanda y cuerpo distinto con la misma referencia devuelve 409.
+- Rechazo de productos/mesas de otro restaurante, sucursales ajenas, productos agotados/categorías inactivas, cantidades inválidas, líneas repetidas, precios enviados por cliente y totales fuera de rango.
+- Transiciones por rol, detección de estado obsoleto, auditoría, liberación de mesa y cancelación con motivo.
+- Solicitudes simultáneas: misma referencia produce una sola cuenta; dos referencias para la misma mesa producen un éxito y un conflicto.
+- Restricciones directas PostgreSQL: referencias de producto/mesa de otro restaurante y cantidades fuera de rango rechazadas.
+- Actualización desde Sprint 1 conserva credenciales/roles/sesiones y desde Sprint 3 conserva nombre/precio/disponibilidad del producto y capacidad de mesa.
+- Typecheck, build API/web y ejecución standalone aprobados; health, proxy, assets PWA, login piloto, refresh y seed repetible correctos en 127.0.0.1:6000/6001.
+- Revisión en navegador local con copia temporal de los 16 productos de la landing y tres mesas de prueba: captura de dos tacos chicos con indicación «Sin cebolla», envío por $58, mesa ocupada, preparación, lista y entrega. Captura `../tavixo-sprint4-cocina.jpg`.
+- La confirmación nativa de cierre bloqueó la herramienta del navegador durante la revisión. Se reemplazaron confirmaciones nativas de cierre/cancelación por formularios dentro de la tarjeta y se volvió a aprobar typecheck/build. El cierre fue comprobado por integración; la confirmación final no pudo revalidarse visualmente en esa sesión del navegador.
+
+## Límites y despliegue
+
+Una comanda equivale a una cuenta completa; agregar rondas, dividir cuentas, pagos, tickets, impresión e inventario quedan para próximos sprints. Los datos de demostración viven únicamente en una base temporal local. No se cargan fixtures a producción.
+
+Sin despliegue en el VPS durante esta entrega. Antes de desplegar: autorización explícita del usuario, respaldo de DB/entorno, conservar imágenes API/web actuales para reversión, aplicar migración aditiva y reiniciar sólo API/web de Tavixo. Confirmar los 16 productos/5 categorías actuales y verificar salud, acceso, menú y comandas. No modificar Nginx ni servicios ajenos.

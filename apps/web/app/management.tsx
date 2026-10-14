@@ -1,6 +1,7 @@
 "use client";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./catalog";
+import Orders from "./orders";
 export type Session = {
   accessToken: string;
   expiresIn: number;
@@ -180,6 +181,8 @@ export default function Management({
           ["branches", "Sucursales"],
           ["menu", "Menú"],
           ["tables", "Mesas"],
+          ["orders", "Comandas"],
+          ["kitchen", "Cocina"],
           ...(administrative ? [["team", "Equipo"]] : []),
           ["account", "Mi cuenta"],
         ].map(([key, label]) => (
@@ -642,6 +645,15 @@ export default function Management({
           branches={branches}
           online={online}
           mode={tab}
+        />
+      )}
+      {(tab === "orders" || tab === "kitchen") && (
+        <Orders
+          key={session.restaurant.id}
+          session={session}
+          branches={branches}
+          online={online}
+          kitchen={tab === "kitchen"}
         />
       )}
       {tab === "account" && (

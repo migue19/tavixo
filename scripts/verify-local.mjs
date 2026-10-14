@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import {
   mkdir,
+  rm,
   mkdtemp,
   writeFile,
   open,
@@ -110,6 +111,7 @@ try {
   await pg.start();
   await pg.createDatabase("tavixo_test");
   await run(["run", "db:generate"]);
+  await rm("work/upgrade", { recursive: true, force: true });
   await mkdir("work/upgrade/migrations/20261013000000_init", {
     recursive: true,
   });
@@ -165,7 +167,70 @@ try {
         new Date(Date.now() + 86400000),
       ],
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint3.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    for (const migration of [
+      "20261013010000_management",
+      "20261013020000_catalog",
+    ]) {
+      await cp(
+        `apps/api/prisma/migrations/${migration}`,
+        `work/upgrade/migrations/${migration}`,
+        { recursive: true },
+      );
+    }
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const legacyBranch = (
+      await client.query('SELECT id FROM "Branch" WHERE "restaurantId"=$1', [
+        legacy.restaurant,
+      ])
+    ).rows[0].id;
+    const legacyCategory = randomUUID(),
+      legacyProduct = randomUUID(),
+      legacyTable = randomUUID();
+    await client.query(
+      'INSERT INTO "MenuCategory" (id, "restaurantId", "branchId", name) VALUES ($1,$2,$3,$4)',
+      [legacyCategory, legacy.restaurant, legacyBranch, "Tacos"],
+    );
+    await client.query(
+      'INSERT INTO "Product" (id,"restaurantId","branchId","categoryId",name,"priceCents",available) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+      [
+        legacyProduct,
+        legacy.restaurant,
+        legacyBranch,
+        legacyCategory,
+        "Taco chico",
+        2900,
+        false,
+      ],
+    );
+    await client.query(
+      'INSERT INTO "DiningTable" (id,"restaurantId","branchId",name,capacity) VALUES ($1,$2,$3,$4,$5)',
+      [legacyTable, legacy.restaurant, legacyBranch, "Mesa existente", 6],
+    );
     await run(["run", "db:migrate"]);
+    const catalogPreserved = await client.query(
+      'SELECT p.name,p."priceCents",p.available,t.capacity FROM "Product" p JOIN "DiningTable" t ON t."branchId"=p."branchId" WHERE p.id=$1 AND t.id=$2',
+      [legacyProduct, legacyTable],
+    );
+    assert(
+      catalogPreserved.rows.length === 1 &&
+        catalogPreserved.rows[0].name === "Taco chico" &&
+        catalogPreserved.rows[0].priceCents === 2900 &&
+        catalogPreserved.rows[0].available === false &&
+        catalogPreserved.rows[0].capacity === 6,
+      "Sprint 3 upgrade preserves menu prices, availability and tables",
+    );
     const upgraded = await client.query(
       'SELECT u."passwordHash", m.role, b.name, s.id AS session FROM "User" u JOIN "Membership" m ON m."userId"=u.id JOIN "Branch" b ON b.id=m."branchId" AND b."restaurantId"=m."restaurantId" JOIN "RefreshSession" s ON s."membershipId"=m.id WHERE u.id=$1',
       [legacy.user],
