@@ -1,4 +1,4 @@
-# Tavixo · Sprint 8
+# Tavixo · Sprint 9
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,23 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Cancelación de productos del Sprint 9
+
+Propietario o gerente pueden cancelar cantidades parciales o completas de una línea de una cuenta abierta. Desde Comandas, pulsa **Cancelar [producto]**, captura cantidad y motivo y confirma.
+
+- Se conserva la cantidad original, nombre y precio de la línea. Cada cancelación guarda cantidad, motivo obligatorio, responsable y fecha; el importe descontado usa el precio original, aunque cambie el menú.
+- Total, ticket y cobro usan sólo cantidades vigentes. Los productos cancelados quedan visibles en el historial; cocina muestra cantidades restantes y omite líneas completamente canceladas.
+- Ronda sin productos vigentes pasa a Cancelada. Las demás conservan su avance. Una cuenta sin productos vigentes se cancela y libera la mesa sin inventar un pago.
+- No se cancelan productos de cuentas ya pagadas, cerradas o canceladas. No procesa devoluciones de dinero ni modifica ventas o cortes anteriores.
+- El servidor valida cantidades/total esperados y serializa cancelaciones con rondas, entregas y cobros. Reintentos idénticos no duplican cancelaciones; cambios simultáneos exigen actualizar antes de continuar.
+- El permiso se revalida al escribir: sólo OWNER/MANAGER del restaurante, con validación de sucursal/cuenta/línea. No hay borrado de líneas ni cancelaciones por mesero/cajero/cocina.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| POST | /api/restaurant/branches/:branchId/orders/:id/items/:itemId/cancellations | requestId UUID, quantity, expectedCancelledQuantity, expectedTotalCents y reason obligatorio |
+
+Migración aditiva `20261014060000_item_cancellations`: cantidad cancelada inicial cero y auditoría vacía; preserva datos existentes. Despliegue requiere autorización específica y respaldo. Tras operar cancelaciones no volver al Sprint 8 sin evaluar las cuentas afectadas: esa aplicación desconoce cantidades canceladas y puede presentar tickets incorrectos. Conservar siempre auditoría y campos nuevos.
 
 ## Caja y ventas del Sprint 8
 
@@ -38,7 +55,7 @@ Desde **Comandas**, pulsa **Agregar productos** en una cuenta abierta o selecci�
 - OWNER/MANAGER/WAITER/CASHIER pueden agregar productos. Cocina prepara y marca lista; piso registra entrega. Sólo se puede cobrar cuando todas las rondas estén entregadas.
 - Reintentos del mismo envío no duplican productos. El servidor valida el total esperado y serializa cobros, cambios de estado y nuevas rondas; ante un conflicto se actualiza la cuenta antes de continuar.
 - Hasta 100 líneas por cuenta y cantidades de 1 a 100 por línea; un producto puede repetirse en diferentes rondas. No se agregan productos a cuentas cerradas/canceladas ni productos agotados o inactivos.
-- La cancelación administrativa sigue siendo de la cuenta completa, con motivo. No hay edición, eliminación o cancelación individual de líneas/rondas en este sprint.
+- La cancelación administrativa sigue siendo de la cuenta completa, con motivo. No hay edición ni eliminación de líneas en Sprint 7; Sprint 9 añade cancelación auditada de cantidades.
 
 | Método | Ruta | Uso |
 |---|---|---|

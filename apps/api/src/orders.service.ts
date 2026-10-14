@@ -16,6 +16,7 @@ import {
 import { createHash } from "node:crypto";
 import { PrismaService } from "./prisma.service";
 import {
+  CancelItemDto,
   CreateRoundDto,
   CreateOrderDto,
   OrderStatusDto,
@@ -23,8 +24,39 @@ import {
 } from "./orders.dto";
 import { Ticket, TicketKind } from "./ticket";
 const include = {
-  items: true,
-  rounds: { include: { items: true }, orderBy: { number: "asc" as const } },
+  items: {
+    include: {
+      cancellations: {
+        select: {
+          id: true,
+          quantity: true,
+          reason: true,
+          actorName: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "asc" as const },
+      },
+    },
+  },
+  rounds: {
+    include: {
+      items: {
+        include: {
+          cancellations: {
+            select: {
+              id: true,
+              quantity: true,
+              reason: true,
+              actorName: true,
+              createdAt: true,
+            },
+            orderBy: { createdAt: "asc" as const },
+          },
+        },
+      },
+    },
+    orderBy: { number: "asc" as const },
+  },
   payment: true,
   events: { orderBy: { createdAt: "asc" as const } },
 };
@@ -118,6 +150,8 @@ export class OrdersService {
     return rounds;
   }
   private aggregate(statuses: OrderStatus[]): OrderStatus {
+    statuses = statuses.filter((s) => s !== OrderStatus.CANCELLED);
+    if (!statuses.length) return OrderStatus.CANCELLED;
     if (statuses.every((s) => s === OrderStatus.DELIVERED))
       return OrderStatus.DELIVERED;
     if (statuses.includes(OrderStatus.SENT)) return OrderStatus.SENT;
@@ -331,6 +365,119 @@ export class OrdersService {
       });
     });
   }
+  cancelItem(
+    actor: Membership,
+    branchId: string,
+    id: string,
+    itemId: string,
+    dto: CancelItemDto,
+  ) {
+    const hash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          id,
+          itemId,
+          quantity: dto.quantity,
+          expectedCancelledQuantity: dto.expectedCancelledQuantity,
+          expectedTotalCents: dto.expectedTotalCents,
+          reason: dto.reason,
+        }),
+      )
+      .digest("hex");
+    return this.write(actor, branchId, async (tx, member, name) => {
+      if (!this.admin(member))
+        throw new ForbiddenException(
+          "Sólo propietario o gerente puede cancelar productos",
+        );
+      const replay = await tx.itemCancellation.findUnique({
+        where: { branchId_requestId: { branchId, requestId: dto.requestId } },
+      });
+      if (replay) {
+        if (
+          replay.requestHash !== hash ||
+          replay.orderId !== id ||
+          replay.itemId !== itemId
+        )
+          throw new ConflictException(
+            "La referencia ya corresponde a otra cancelación",
+          );
+        return tx.order.findFirstOrThrow({
+          where: { id, branchId, restaurantId: member.restaurantId },
+          include,
+        });
+      }
+      const order = await tx.order.findFirst({
+        where: { id, branchId, restaurantId: member.restaurantId },
+        include,
+      });
+      if (!order) throw new NotFoundException("Cuenta no encontrada");
+      if (
+        terminal.includes(order.status as "CLOSED" | "CANCELLED") ||
+        order.payment
+      )
+        throw new ConflictException("La cuenta ya terminó");
+      const item = order.items.find((i) => i.id === itemId);
+      if (!item)
+        throw new NotFoundException("Producto de cuenta no encontrado");
+      if (
+        order.totalCents !== dto.expectedTotalCents ||
+        item.cancelledQuantity !== dto.expectedCancelledQuantity
+      )
+        throw new ConflictException(
+          "La cuenta cambió; actualiza antes de cancelar",
+        );
+      if (dto.quantity > item.quantity - item.cancelledQuantity)
+        throw new ConflictException(
+          "La cantidad excede los productos vigentes",
+        );
+      await this.ensureFirstRound(tx, order);
+      await tx.itemCancellation.create({
+        data: {
+          itemId,
+          orderId: id,
+          branchId,
+          restaurantId: member.restaurantId,
+          requestId: dto.requestId,
+          requestHash: hash,
+          quantity: dto.quantity,
+          reason: dto.reason,
+          actorName: name,
+        },
+      });
+      await tx.orderItem.update({
+        where: { id: itemId },
+        data: { cancelledQuantity: { increment: dto.quantity } },
+      });
+      const rounds = await tx.orderRound.findMany({
+        where: { orderId: id },
+        include: { items: true },
+      });
+      for (const round of rounds)
+        if (round.items.every((i) => i.quantity === i.cancelledQuantity)) {
+          await tx.orderRound.update({
+            where: { id: round.id },
+            data: { status: OrderStatus.CANCELLED },
+          });
+          round.status = OrderStatus.CANCELLED;
+        }
+      const status = this.aggregate(rounds.map((r) => r.status));
+      return tx.order.update({
+        where: { id },
+        data: {
+          totalCents: order.totalCents - dto.quantity * item.unitPriceCents,
+          status,
+          events: {
+            create: {
+              status,
+              actorName: name,
+              reason: `Cancelación: ${dto.quantity} × ${item.name}. ${dto.reason}`,
+            },
+          },
+        },
+        include,
+      });
+    });
+  }
   async list(member: Membership, branchId: string) {
     await this.branch(this.db, member, branchId);
     // All open accounts plus the last 50 terminal accounts, bounded history.
@@ -400,12 +547,15 @@ export class OrdersService {
             createdAt: order.createdAt.toISOString(),
             createdByName: order.createdByName,
             totalCents: order.totalCents,
-            items: order.items.map((i) => ({
-              name: i.name,
-              quantity: i.quantity,
-              unitPriceCents: i.unitPriceCents,
-              lineTotalCents: i.quantity * i.unitPriceCents,
-            })),
+            items: order.items
+              .filter((i) => i.quantity > i.cancelledQuantity)
+              .map((i) => ({
+                name: i.name,
+                quantity: i.quantity - i.cancelledQuantity,
+                unitPriceCents: i.unitPriceCents,
+                lineTotalCents:
+                  (i.quantity - i.cancelledQuantity) * i.unitPriceCents,
+              })),
           },
           payment: p
             ? {
@@ -582,7 +732,11 @@ export class OrdersService {
           "La cuenta debe estar entregada y sin cobro registrado",
         );
       const rounds = await this.ensureFirstRound(tx, order);
-      if (!rounds.every((r) => r.status === OrderStatus.DELIVERED))
+      if (
+        !rounds
+          .filter((r) => r.status !== OrderStatus.CANCELLED)
+          .every((r) => r.status === OrderStatus.DELIVERED)
+      )
         throw new ConflictException("Entrega todas las rondas antes de cobrar");
       if (dto.expectedTotalCents !== order.totalCents)
         throw new ConflictException(

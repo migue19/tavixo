@@ -15,6 +15,7 @@ import {
 import { Role } from "@prisma/client";
 import { AuthGuard, Roles, TenantRequest } from "./auth.guard";
 import {
+  CancelItemDto,
   CreateRoundDto,
   CreateOrderDto,
   OrderStatusDto,
@@ -92,6 +93,17 @@ export class OrdersController {
     @Body() dto: OrderStatusDto,
   ) {
     return this.orders.roundStatus(req.member, branch, id, roundId, dto);
+  }
+  @Post(":id/items/:itemId/cancellations")
+  @Roles(Role.OWNER, Role.MANAGER)
+  cancelItem(
+    @Req() req: TenantRequest,
+    @Param("branchId", uuid()) branch: string,
+    @Param("id", uuid()) id: string,
+    @Param("itemId", uuid()) itemId: string,
+    @Body() dto: CancelItemDto,
+  ) {
+    return this.orders.cancelItem(req.member, branch, id, itemId, dto);
   }
   @Post(":id/payment")
   @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER)

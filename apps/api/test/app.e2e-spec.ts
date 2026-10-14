@@ -80,6 +80,11 @@ before(
 );
 after(async () => {
   if (db) {
+    await db.itemCancellation.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
     await db.cashCut.deleteMany({
       where: {
         restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
@@ -2123,4 +2128,250 @@ it("resolves local cash days without depending on machine timezone", () => {
   assert.throws(() =>
     cashRange("2026-01-16", new Date("2026-01-15T18:30:00Z")),
   );
+});
+
+it("cancels partial quantities at original price, audits reason and pays only remaining products", async () => {
+  const f = await paymentFixture();
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { priceCents: 9000, name: "Changed" },
+  });
+  const path = `${f.base}/${f.order.id}/items/${f.order.items[0].id}/cancellations`;
+  const body = {
+    requestId: randomUUID(),
+    quantity: 1,
+    expectedCancelledQuantity: 0,
+    expectedTotalCents: 8700,
+    reason: "Cliente cambió el pedido",
+  };
+  const result = await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.staff.MANAGER)
+    .send(body)
+    .expect(201);
+  assert.equal(result.body.totalCents, 5800);
+  assert.equal(result.body.items[0].quantity, 3);
+  assert.equal(result.body.items[0].cancelledQuantity, 1);
+  assert.equal(result.body.items[0].unitPriceCents, 2900);
+  assert.equal(result.body.items[0].cancellations[0].reason, body.reason);
+  assert.equal(result.body.items[0].cancellations[0].actorName, "MANAGER");
+  const ticket = await request(app.getHttpServer())
+    .get(`${f.base}/${f.order.id}/ticket`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(ticket.body.order.items[0].quantity, 2);
+  assert.equal(ticket.body.order.items[0].lineTotalCents, 5800);
+  assert.equal(ticket.body.order.totalCents, 5800);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(409);
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({ ...f.payment, expectedTotalCents: 5800 })
+    .expect(201);
+  assert.equal(paid.body.payment.amountCents, 5800);
+  const retry = await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.staff.MANAGER)
+    .send(body)
+    .expect(201);
+  assert.equal(retry.body.items[0].cancelledQuantity, 1);
+  await request(app.getHttpServer())
+    .post(path)
+    .set("Authorization", f.auth)
+    .send({
+      ...body,
+      requestId: randomUUID(),
+      expectedTotalCents: 5800,
+      expectedCancelledQuantity: 1,
+    })
+    .expect(409);
+});
+
+it("cancels empty rounds, preserves delivered rounds and releases fully cancelled tables", async () => {
+  const f = await paymentFixture();
+  const added = await request(app.getHttpServer())
+    .post(`${f.base}/${f.order.id}/rounds`)
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      expectedTotalCents: 8700,
+      items: [{ productId: f.product.id, quantity: 1 }],
+    })
+    .expect(201);
+  const item = added.body.rounds[1].items[0];
+  const cancel = await request(app.getHttpServer())
+    .post(`${f.base}/${f.order.id}/items/${item.id}/cancellations`)
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      quantity: 1,
+      expectedCancelledQuantity: 0,
+      expectedTotalCents: 11600,
+      reason: "Ya no lo quiere",
+    })
+    .expect(201);
+  assert.equal(cancel.body.rounds[1].status, "CANCELLED");
+  assert.equal(cancel.body.rounds[0].status, "DELIVERED");
+  assert.equal(cancel.body.status, "DELIVERED");
+  assert.equal(cancel.body.totalCents, 8700);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  const other = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+  const cancelled = await request(app.getHttpServer())
+    .post(
+      `${f.base}/${other.body.id}/items/${other.body.items[0].id}/cancellations`,
+    )
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      quantity: 3,
+      expectedCancelledQuantity: 0,
+      expectedTotalCents: 8700,
+      reason: "Cliente se retiró",
+    })
+    .expect(201);
+  assert.equal(cancelled.body.status, "CANCELLED");
+  assert.equal(cancelled.body.totalCents, 0);
+  assert.equal(cancelled.body.payment, null);
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+});
+
+it("serializes cancellation retries and rejects excess quantities, stale totals and conflicting IDs", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/items/${f.order.items[0].id}/cancellations`;
+  const body = {
+    requestId: randomUUID(),
+    quantity: 1,
+    expectedCancelledQuantity: 0,
+    expectedTotalCents: 8700,
+    reason: "Error al capturar",
+  };
+  const send = (data: object) =>
+    request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", f.auth)
+      .send(data);
+  const results = await Promise.all([send(body), send(body)]);
+  assert.deepEqual(
+    results.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(results[1].body.totalCents, 5800);
+  assert.equal(results[1].body.items[0].cancellations.length, 1);
+  await send({ ...body, reason: "Otra razón" }).expect(409);
+  await send({ ...body, requestId: randomUUID() }).expect(409);
+  await send({
+    ...body,
+    requestId: randomUUID(),
+    quantity: 3,
+    expectedCancelledQuantity: 1,
+    expectedTotalCents: 5800,
+  }).expect(409);
+  const race = await Promise.all([
+    send({
+      ...body,
+      requestId: randomUUID(),
+      expectedCancelledQuantity: 1,
+      expectedTotalCents: 5800,
+    }),
+    send({
+      ...body,
+      requestId: randomUUID(),
+      expectedCancelledQuantity: 1,
+      expectedTotalCents: 5800,
+    }),
+  ]);
+  assert.deepEqual(race.map((r) => r.status).sort(), [201, 409]);
+});
+
+it("restricts product cancellation to live administrators and validates item/tenant scope", async () => {
+  const f = await paymentFixture();
+  const path = `${f.base}/${f.order.id}/items/${f.order.items[0].id}/cancellations`;
+  const body = {
+    requestId: randomUUID(),
+    quantity: 1,
+    expectedCancelledQuantity: 0,
+    expectedTotalCents: 8700,
+    reason: "Error",
+  };
+  for (const role of ["WAITER", "CASHIER", "KITCHEN"])
+    await request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", f.staff[role])
+      .send(body)
+      .expect(403);
+  for (const override of [
+    { reason: " " },
+    { quantity: 0 },
+    { quantity: 1.5 },
+    { quantity: null },
+    { priceCents: 10 },
+  ])
+    await request(app.getHttpServer())
+      .post(path)
+      .set("Authorization", f.auth)
+      .send({ ...body, ...override })
+      .expect(400);
+  await request(app.getHttpServer()).post(path).send(body).expect(401);
+  await request(app.getHttpServer())
+    .post(`${f.base}/${f.order.id}/items/${randomUUID()}/cancellations`)
+    .set("Authorization", f.auth)
+    .send(body)
+    .expect(404);
+  await request(app.getHttpServer())
+    .post(
+      `/api/restaurant/branches/${f.other.id}/orders/${f.order.id}/items/${f.order.items[0].id}/cancellations`,
+    )
+    .set("Authorization", f.auth)
+    .send(body)
+    .expect(404);
+});
+
+it("makes payment and cancellation mutually exclusive without a stale charge", async () => {
+  const f = await paymentFixture();
+  const results = await Promise.all([
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(f.payment),
+    request(app.getHttpServer())
+      .post(
+        `${f.base}/${f.order.id}/items/${f.order.items[0].id}/cancellations`,
+      )
+      .set("Authorization", f.auth)
+      .send({
+        requestId: randomUUID(),
+        quantity: 1,
+        expectedCancelledQuantity: 0,
+        expectedTotalCents: 8700,
+        reason: "Cambio de pedido",
+      }),
+  ]);
+  assert.deepEqual(results.map((r) => r.status).sort(), [201, 409]);
+  const order = await db.order.findUniqueOrThrow({
+    where: { id: f.order.id },
+    include: { payment: true, items: true },
+  });
+  if (order.payment) {
+    assert.equal(order.totalCents, 8700);
+    assert.equal(order.items[0].cancelledQuantity, 0);
+  } else {
+    assert.equal(order.totalCents, 5800);
+    assert.equal(order.items[0].cancelledQuantity, 1);
+  }
 });

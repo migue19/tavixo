@@ -166,6 +166,9 @@ model OrderItem {
   quantity Int
   unitPriceCents Int
   notes String @default("")
+  cancelledQuantity Int @default(0)
+  cancellations ItemCancellation[]
+  @@unique([id, orderId, branchId, restaurantId])
   order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: Cascade)
   product Product @relation(fields: [productId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
 }
@@ -241,4 +244,20 @@ model CashCut {
   branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Restrict)
   @@unique([branchId, requestId])
   @@index([restaurantId, branchId, day, createdAt])
+}
+
+model ItemCancellation {
+ id String @id @default(uuid()) @db.Uuid
+ itemId String @db.Uuid
+ orderId String @db.Uuid
+ branchId String @db.Uuid
+ restaurantId String @db.Uuid
+ requestId String @db.Uuid
+ requestHash String
+ quantity Int
+ reason String
+ actorName String
+ createdAt DateTime @default(now())
+ item OrderItem @relation(fields:[itemId,orderId,branchId,restaurantId],references:[id,orderId,branchId,restaurantId],onDelete:Restrict)
+ @@unique([branchId,requestId])
 }

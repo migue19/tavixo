@@ -73,6 +73,7 @@ export default function TicketPanel({
     order.payment?.id,
     order.totalCents,
     order.items.length,
+    order.items.reduce((n, i) => n + i.cancelledQuantity, 0),
   ]);
   async function request(kind: Kind, pdf = false) {
     const res = await fetch(

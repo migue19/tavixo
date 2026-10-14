@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import type { CancelPayload } from "./item-cancellation";
 import Rounds, { type Round } from "./rounds";
 import TicketPanel from "./ticket";
 import PaymentPanel, { type Payment } from "./payment";
@@ -40,6 +41,7 @@ export type Order = {
     name: string;
     quantity: number;
     unitPriceCents: number;
+    cancelledQuantity: number;
     notes: string;
   }[];
   events: {
@@ -626,6 +628,20 @@ export default function Orders({
             {order.rounds.length > 0 ? (
               <Rounds
                 rounds={order.rounds}
+                canCancel={admin && !finished(order) && !kitchen}
+                totalCents={order.totalCents}
+                storageKey={`tavixo-cancel-${session.restaurant.id}-${branchId}-${order.id}`}
+                onCancel={async (itemId: string, body: CancelPayload) => {
+                  const updated: Order = await api(
+                    `orders/${order.id}/items/${itemId}/cancellations`,
+                    "POST",
+                    body,
+                  );
+                  setOrders((current) =>
+                    current.map((o) => (o.id === updated.id ? updated : o)),
+                  );
+                  setNotice("Producto cancelado; total de cuenta actualizado");
+                }}
                 kitchen={kitchen}
                 cook={cook}
                 floor={floor}

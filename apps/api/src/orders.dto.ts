@@ -77,3 +77,11 @@ export class CreateRoundDto {
   @Type(() => OrderLineDto)
   items!: OrderLineDto[];
 }
+
+export class CancelItemDto {
+  @IsUUID("4") requestId!: string;
+  @IsInt() @Min(1) @Max(100) quantity!: number;
+  @IsInt() @Min(0) @Max(100) expectedCancelledQuantity!: number;
+  @IsInt() @Min(0) @Max(2147483647) expectedTotalCents!: number;
+  @Transform(trim) @IsString() @Length(1, 500) reason!: string;
+}

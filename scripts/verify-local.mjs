@@ -336,7 +336,64 @@ try {
     const beforeSprint8 = await client.query(
       'SELECT row_to_json(o) AS original FROM "OrderRound" o ORDER BY id',
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint8.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    await cp(
+      "apps/api/prisma/migrations/20261014050000_cash_cuts",
+      "work/upgrade/migrations/20261014050000_cash_cuts",
+      { recursive: true },
+    );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const legacyCut = randomUUID();
+    await client.query(
+      'INSERT INTO "CashCut" (id,"restaurantId","branchId",day,"requestId","requestHash","openingCents","countedCents","actorName",snapshot) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+      [
+        legacyCut,
+        legacy.restaurant,
+        legacyBranch,
+        "2026-01-15",
+        randomUUID(),
+        "legacy-cut",
+        1000,
+        1000,
+        "Legacy owner",
+        JSON.stringify({
+          totalCents: 0,
+          expectedCents: 1000,
+          differenceCents: 0,
+        }),
+      ],
+    );
+    const beforeCut = await client.query(
+      'SELECT row_to_json(c) AS original FROM "CashCut" c WHERE id=$1',
+      [legacyCut],
+    );
     await run(["run", "db:migrate"]);
+    const afterCut = await client.query(
+      'SELECT row_to_json(c) AS original FROM "CashCut" c WHERE id=$1',
+      [legacyCut],
+    );
+    assert(
+      JSON.stringify(beforeCut.rows) === JSON.stringify(afterCut.rows),
+      "Sprint 9 preserves existing saved cash cuts",
+    );
+    const cancellationState = await client.query(
+      'SELECT "cancelledQuantity" FROM "OrderItem"',
+    );
+    assert(
+      cancellationState.rows.every((i) => i.cancelledQuantity === 0),
+      "Sprint 9 defaults all legacy products to uncancelled",
+    );
     const afterSprint8 = await client.query(
       'SELECT row_to_json(o) AS original FROM "OrderRound" o ORDER BY id',
     );
@@ -348,8 +405,8 @@ try {
       'SELECT count(*)::int AS count FROM "CashCut"',
     );
     assert(
-      cashCuts.rows[0].count === 0,
-      "Sprint 8 migration does not invent cash cuts",
+      cashCuts.rows[0].count === 1,
+      "Sprint 9 retains only the existing legacy cash cut",
     );
     const preservedOrders = await client.query(
       'SELECT o.status,o."totalCents",i.quantity,i."unitPriceCents",p.id AS payment FROM "Order" o JOIN "OrderItem" i ON i."orderId"=o.id LEFT JOIN "Payment" p ON p."orderId"=o.id WHERE o."restaurantId"=$1 ORDER BY o.number',
@@ -405,6 +462,9 @@ try {
         upgraded.rows[0].session === legacy.session,
       "Sprint 1 upgrade preserves credentials, roles and sessions and backfills the main branch",
     );
+    await client.query('DELETE FROM "CashCut" WHERE "restaurantId"=$1', [
+      legacy.restaurant,
+    ]);
     await client.query('DELETE FROM "Payment" WHERE "restaurantId"=$1', [
       legacy.restaurant,
     ]);

@@ -1,4 +1,5 @@
 "use client";
+import ItemCancellation, { type CancelPayload } from "./item-cancellation";
 export type Round = {
   id: string;
   number: number;
@@ -12,6 +13,14 @@ export type Round = {
     quantity: number;
     unitPriceCents: number;
     notes: string;
+    cancelledQuantity: number;
+    cancellations: {
+      id: string;
+      quantity: number;
+      reason: string;
+      actorName: string;
+      createdAt: string;
+    }[];
   }[];
 };
 const labels: Record<string, string> = {
@@ -32,6 +41,10 @@ export default function Rounds({
   floor,
   disabled,
   onStatus,
+  canCancel,
+  totalCents,
+  storageKey,
+  onCancel,
 }: {
   rounds: Round[];
   kitchen: boolean;
@@ -39,6 +52,10 @@ export default function Rounds({
   floor: boolean;
   disabled: boolean;
   onStatus: (round: Round, status: string) => void;
+  canCancel: boolean;
+  totalCents: number;
+  storageKey: string;
+  onCancel: (itemId: string, body: CancelPayload) => Promise<void>;
 }) {
   return (
     <div className="round-list">
@@ -60,17 +77,44 @@ export default function Rounds({
               · {round.createdByName}
             </p>
             <ul>
-              {round.items.map((i) => (
-                <li key={i.id}>
-                  <strong>
-                    {i.quantity} × {i.name}
-                  </strong>
-                  <span className="line-price">
-                    {money(i.quantity * i.unitPriceCents)}
-                  </span>
-                  {i.notes && <p className="order-note">{i.notes}</p>}
-                </li>
-              ))}
+              {round.items
+                .filter((i) => !kitchen || i.quantity > i.cancelledQuantity)
+                .map((i) => (
+                  <li key={i.id}>
+                    <strong>
+                      {i.quantity - i.cancelledQuantity} × {i.name}
+                    </strong>
+                    <span className="line-price">
+                      {money(
+                        (i.quantity - i.cancelledQuantity) * i.unitPriceCents,
+                      )}
+                    </span>
+                    {i.notes && <p className="order-note">{i.notes}</p>}
+                    {i.cancelledQuantity > 0 && (
+                      <p className="order-note">
+                        Cancelados: {i.cancelledQuantity} de {i.quantity}
+                      </p>
+                    )}
+                    {!kitchen &&
+                      i.cancellations.map((c) => (
+                        <p key={c.id} className="order-note">
+                          {c.quantity} cancelados · {c.reason} · {c.actorName} ·{" "}
+                          {new Date(c.createdAt).toLocaleString("es-MX", {
+                            timeZone: "America/Mexico_City",
+                          })}
+                        </p>
+                      ))}
+                    {canCancel && i.quantity > i.cancelledQuantity && (
+                      <ItemCancellation
+                        item={i}
+                        totalCents={totalCents}
+                        storageKey={`${storageKey}-${i.id}`}
+                        disabled={disabled}
+                        onCancel={(body) => onCancel(i.id, body)}
+                      />
+                    )}
+                  </li>
+                ))}
             </ul>
             {round.notes && <p className="order-note">{round.notes}</p>}
             <div className="actions">
