@@ -124,7 +124,7 @@ Las pruebas crean y eliminan sólo sus fixtures. Nunca apuntar a una base de dat
 
 ## VPS Ubuntu 24.04 compartido: preparación para despliegue autorizado
 
-**Nada de este proyecto se ha desplegado.** Los siguientes pasos son para ejecución manual después de autorización. No reemplazar configuraciones ni servicios existentes.
+El estado del despliegue autorizado se registra en [DEPLOYMENT.md](DEPLOYMENT.md). Los siguientes pasos describen el proceso para instalaciones futuras. No reemplazar configuraciones ni servicios existentes.
 
 1. Inspeccionar puertos 6000/6001, RAM/disco y Docker/Nginx existentes. No reinstalar ni reiniciar servicios compartidos. Reservar recursos para Tavixo; los límites de Compose no sustituyen una revisión de capacidad del VPS.
 2. Ubicar este proyecto en un directorio propio, por ejemplo `/opt/tavixo`. Crear `.env` con permisos 600 y secretos propios. No reutilizar credenciales de otros servicios.
