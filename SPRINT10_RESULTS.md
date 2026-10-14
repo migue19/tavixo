@@ -1,6 +1,6 @@
 # Sprint 10 · Pago mixto en efectivo y tarjeta
 
-Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendiente de autorización específica.
+Implementado y verificado localmente el 14 de octubre de 2026. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -31,3 +31,14 @@ Implementado y verificado localmente el 14 de octubre de 2026. Despliegue pendie
 Requiere autorización específica, respaldo previo e imágenes anteriores. Migraciones 20261014070000_mixed_payments y 20261014071000_mixed_payments. Sin cambios a Compose/Nginx/puertos; actualizar exclusivamente API/web y ejecutar herramienta de migración.
 
 No eliminar enum/columnas ni registros para revertir. Tras registrar MIXED, Sprint 9 desconoce el nuevo método: evaluar/adaptar su lectura antes de regresar a imágenes anteriores. Antes de que existan pagos mixtos, los métodos antiguos siguen compatibles con el esquema ampliado.
+
+## Producción verificada
+
+- Aplicación 796984b desplegada con Node 24 en https://app.birriaelcachanilla.com.mx.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint10-20261014T214412Z`: dump validado, fuente, entorno y snapshot. Imágenes de reversión `tavixo-api:pre-sprint10` y `tavixo-web:pre-sprint10` conservadas; no se requirió reversión.
+- Ambas migraciones aplicadas correctamente. Partes de pagos históricos rellenadas sólo en columnas nuevas; datos originales de pagos (importes, cambio, fechas, folios y hashes) idénticos.
+- Comparación exacta previa/posterior excluyendo únicamente columnas nuevas: productos/categorías, mesas, sucursales, membresías, cuentas, líneas, rondas, eventos, cancelaciones y cortes intactos.
+- Sólo API/web recreadas y saludables. PostgreSQL y demás contenedores conservaron IDs y tiempos de arranque; hashes de Nginx iguales. Puertos 6000/6001 ligados a 127.0.0.1 y base privada.
+- 43 comprobaciones HTTPS aprobadas: auth/PWA, catálogo/mesas/rondas/cancelaciones, tickets/PDF, caja, partes históricas coherentes y reconocimiento/validación del método MIXED sin escrituras de prueba.
+- Navegador público: sesión renovada y módulo Caja y ventas nuevo muestra ventas reales $319 = efectivo $120 + tarjeta $199, dos cuentas cobradas y cero mixtas. Captura `../tavixo-sprint10-produccion.jpg`.
+- Sin pagos mixtos, pedidos, cancelaciones ni cortes de prueba en producción. Flujo completo y PDF mixto verificados en demo local aislada.
