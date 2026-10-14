@@ -1,6 +1,6 @@
 # Sprint 6 · Tickets digitales
 
-Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_City). El usuario eligió ticket digital; impresión física queda pendiente. Despliegue pendiente de autorización específica.
+Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_City). El usuario eligió ticket digital; impresión física queda pendiente. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -30,4 +30,16 @@ Implementado y verificado localmente el 14 de octubre de 2026 (America/Mexico_Ci
 
 Ticket digital privado para descarga manual. Sin impresoras físicas, impresión silenciosa, QR público, envío automático, datos fiscales o comprobante bancario. Fechas en America/Mexico_City. No se registra contador de descargas ni se asegura recepción por un cliente.
 
-Antes de desplegar: autorización explícita, respaldo de DB/entorno, conservar imágenes de Sprint 5 para reversión y reiniciar sólo API/web Tavixo. Sin migración nueva. Verificar conservación de productos, cuatro mesas, cuentas/pagos/eventos y demás servicios del VPS, y descargar un ticket existente sin modificar su estado. No registrar cobros de prueba reales.
+Despliegue completado:
+
+- Código de aplicación `5798e67`, construido con Node 24 en Ubuntu 24.04.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint6-20261014T143351Z`: dump validado con listado pg_restore, fuente/entorno y snapshot de catálogo/cuentas/pagos. No se realizó restauración.
+- Imágenes de reversión `tavixo-api:pre-sprint6` y `tavixo-web:pre-sprint6`, con override guardado en el respaldo; no se requirió revertir.
+- Sólo API/web recreadas, ambas saludables. Sin migraciones ni herramientas de escritura en DB.
+- Snapshot idéntico antes/después: productos/categorías, cuatro mesas, sucursales, membresías, cuenta existente, líneas, eventos y pagos. No se crearon pedidos ni cobros de prueba.
+- PostgreSQL y demás contenedores conservaron IDs/tiempos de arranque; hashes de Nginx sin cambios.
+- **27 comprobaciones públicas HTTPS aprobadas**, incluyendo ticket de cuenta autenticado, total/líneas correctos, PDF con fuentes incluidas y no-store, rechazo de PDF sin sesión y de comprobante para cuenta histórica sin pago.
+- Navegador público: vista previa y descarga PDF de la cuenta existente; verificación de total, estado histórico y acentos con pypdf y revisión visual del PDF renderizado. Captura `../tavixo-sprint6-produccion.jpg`.
+- Productos, precios y cuatro mesas reales preservados. No se alteró la condición de la cuenta histórica cerrada sin pago registrado.
+
+Reversión de aplicaciones al Sprint 5 posible conservando datos; no hay migración que revertir.

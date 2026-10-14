@@ -7,7 +7,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `0ae2000860944118f0ec6418be00750f21106167` (Sprint 5).
+- Código de aplicación actual: `5798e67` (Sprint 6).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -52,3 +52,8 @@ Comandas por mesa, ocupación, cocina, entrega/cierre y cancelación con motivo 
 ## Actualización al Sprint 5
 
 Cobros en efectivo con cálculo de cambio y registro de pagos aprobados en terminal externa, con folio. El pago cierra la cuenta y libera la mesa en una transacción; el cierre directo anterior se rechaza. Despliegue aprobado, respaldo validado e imágenes de reversión; sólo API/web recreadas. Conservados productos, categorías, cuatro mesas reales, membresías, cuenta previa y su historial; no se inventaron pagos para cuentas anteriores. Pasaron 22 comprobaciones públicas HTTPS. PostgreSQL, otros contenedores y Nginx sin cambios. Ver [SPRINT5_RESULTS.md](SPRINT5_RESULTS.md).
+
+
+## Actualización al Sprint 6
+
+Tickets digitales de cuenta y comprobante de pago con vista previa y descarga PDF autenticada. Despliegue aprobado con respaldo validado e imágenes de reversión; sólo API/web recreadas. Sin migraciones, datos de catálogo/cuentas/pagos idénticos antes/después, PostgreSQL/otros contenedores y Nginx sin cambios. Pasaron 27 comprobaciones públicas HTTPS y la descarga desde el navegador; total, acentos y condición histórica revisados en el PDF. Ver [SPRINT6_RESULTS.md](SPRINT6_RESULTS.md). Impresión física y envíos automáticos quedan fuera del alcance solicitado.
