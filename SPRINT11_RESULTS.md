@@ -1,6 +1,6 @@
 # Sprint 11 · Caja compartida por turnos
 
-Implementado el 14 de octubre de 2026. El usuario eligió una caja compartida por sucursal. Despliegue pendiente de autorización específica.
+Implementado el 14 de octubre de 2026. El usuario eligió una caja compartida por sucursal. Despliegue autorizado explícitamente y completado en el VPS.
 
 ## Resultado
 
@@ -30,3 +30,14 @@ Implementado el 14 de octubre de 2026. El usuario eligió una caja compartida po
 ## Despliegue y reversión
 
 Migración aditiva 20261014080000_cash_shifts. Requiere autorización específica, respaldo e imágenes anteriores. Sin cambios a Compose/Nginx/puertos. No borrar turnos, movimientos ni relaciones al revertir. Evitar volver a una versión anterior con turno activo: esa versión no enlaza nuevos pagos ni muestra sus movimientos.
+
+## Producción verificada
+
+- Aplicación 30563dc desplegada con Node 24 en https://app.birriaelcachanilla.com.mx.
+- Respaldo privado `/opt/tavixo/backups/pre-sprint11-20261014T220520Z`: dump validado, fuente/entorno y snapshot previo. Imágenes de reversión `tavixo-api:pre-sprint11` / `tavixo-web:pre-sprint11` conservadas; no se requirió reversión.
+- Migración 20261014080000_cash_shifts aplicada. Ningún turno/movimiento histórico inventado; todos los pagos anteriores con shiftId null.
+- Comparación exacta antes/después excluyendo sólo shiftId: productos/categorías, mesas, sucursales, membresías, cuentas, líneas, rondas, eventos, pagos/partes, cancelaciones y cortes diarios intactos.
+- Sólo API/web recreadas y saludables. PostgreSQL y otros contenedores conservaron IDs/tiempos de arranque; hashes Nginx sin cambios. Puertos 6000/6001 ligados a 127.0.0.1; base privada.
+- 48 comprobaciones públicas HTTPS aprobadas: auth/PWA, catálogo/mesas/rondas/cancelaciones, tickets/PDF, caja, partes mixtas, lista de turnos, pagos históricos sin turno, permisos y rechazo de apertura inválida sin escritura.
+- Navegador público: sesión restaurada y módulo Turnos de caja disponible con apertura por sucursal y sin turno activo/histórico. Captura `../tavixo-sprint11-produccion.jpg`.
+- No se abrieron turnos ni se registraron movimientos, cobros, pedidos, cancelaciones o cortes de prueba en producción. Flujo completo de turno/movimientos/cierre probado en demo local aislada.
