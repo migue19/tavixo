@@ -7,6 +7,7 @@ import { JwtService } from "@nestjs/jwt";
 import { Role } from "@prisma/client";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
+import { cashRange, mexicoDay } from "../src/cash.service";
 import { AppModule } from "../src/app.module";
 import { configureApp } from "../src/bootstrap";
 import { PrismaService } from "../src/prisma.service";
@@ -79,6 +80,11 @@ before(
 );
 after(async () => {
   if (db) {
+    await db.cashCut.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
     await db.payment.deleteMany({
       where: {
         restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
@@ -1816,4 +1822,305 @@ it("makes concurrent payment and new round mutually exclusive without losing pro
     assert.equal(order.rounds.length, 2);
     assert.equal(order.items.length, 2);
   }
+});
+
+async function cashFixture() {
+  const f = await paymentFixture();
+  const first = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  await db.payment.update({
+    where: { id: first.body.payment.id },
+    data: { createdAt: new Date("2026-01-16T05:59:59.999Z") },
+  });
+  const pay = async (method: "CASH" | "CARD", timestamp: string) => {
+    const created = await request(app.getHttpServer())
+      .post(f.base)
+      .set("Authorization", f.auth)
+      .send({
+        ...f.body,
+        requestId: randomUUID(),
+        items: [{ productId: f.product.id, quantity: 1 }],
+      })
+      .expect(201);
+    await db.order.update({
+      where: { id: created.body.id },
+      data: { status: "DELIVERED" },
+    });
+    await db.orderRound.updateMany({
+      where: { orderId: created.body.id },
+      data: { status: "DELIVERED" },
+    });
+    const paid = await request(app.getHttpServer())
+      .post(`${f.base}/${created.body.id}/payment`)
+      .set("Authorization", f.auth)
+      .send({
+        requestId: randomUUID(),
+        method,
+        expectedTotalCents: 2900,
+        receivedCents: method === "CASH" ? 5000 : 2900,
+        ...(method === "CARD" ? { reference: "terminal-123" } : {}),
+      })
+      .expect(201);
+    await db.payment.update({
+      where: { id: paid.body.payment.id },
+      data: { createdAt: new Date(timestamp) },
+    });
+    return paid.body.payment.id as string;
+  };
+  const cardId = await pay("CARD", "2026-01-15T06:00:00.000Z");
+  const outsideId = await pay("CASH", "2026-01-16T06:00:00.000Z");
+  const historical = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+  await db.order.update({
+    where: { id: historical.body.id },
+    data: { status: "CLOSED" },
+  });
+  return {
+    ...f,
+    cardId,
+    outsideId,
+    cashBase: `/api/restaurant/branches/${f.branch.id}/cash`,
+    cut: {
+      day: "2026-01-15",
+      requestId: randomUUID(),
+      openingCents: 5000,
+      countedCents: 13000,
+      expectedTotalCents: 11600,
+      expectedPaymentCount: 2,
+      notes: "Cierre revisado",
+    },
+  };
+}
+
+it("summarizes payment-day boundaries in Mexico and excludes unpaid legacy accounts", async () => {
+  const f = await cashFixture();
+  const res = await request(app.getHttpServer())
+    .get(`${f.cashBase}/summary?day=2026-01-15`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(res.body.totalCents, 11600);
+  assert.equal(res.body.paymentCount, 2);
+  assert.equal(res.body.cash.totalCents, 8700);
+  assert.equal(res.body.cash.receivedCents, 10000);
+  assert.equal(res.body.cash.changeCents, 1300);
+  assert.equal(res.body.card.totalCents, 2900);
+  assert.equal(res.body.periodStart, "2026-01-15T06:00:00.000Z");
+  assert.equal(res.body.periodEnd, "2026-01-16T06:00:00.000Z");
+  assert.equal(res.body.payments.length, 2);
+  assert.ok(!JSON.stringify(res.body).includes("requestHash"));
+  const empty = await request(app.getHttpServer())
+    .get(`${f.cashBase}/summary?day=2026-01-14`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(empty.body.totalCents, 0);
+  assert.equal(empty.body.paymentCount, 0);
+});
+
+it("stores cash reconciliation once, preserves snapshots and rejects stale or conflicting cuts", async () => {
+  const f = await cashFixture();
+  const send = (body: object) =>
+    request(app.getHttpServer())
+      .post(`${f.cashBase}/cuts`)
+      .set("Authorization", f.staff.CASHIER)
+      .send(body);
+  const results = await Promise.all([send(f.cut), send(f.cut)]);
+  assert.deepEqual(
+    results.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(results[0].body.id, results[1].body.id);
+  const saved = results[0].body;
+  assert.equal(saved.snapshot.expectedCents, 13700);
+  assert.equal(saved.snapshot.differenceCents, -700);
+  assert.equal(saved.actorName, "CASHIER");
+  assert.ok(!JSON.stringify(saved).includes("requestHash"));
+  await send({ ...f.cut, countedCents: 15000 }).expect(409);
+  await db.payment.update({
+    where: { id: f.outsideId },
+    data: { createdAt: new Date("2026-01-15T20:00:00Z") },
+  });
+  const retry = await send(f.cut).expect(201);
+  assert.deepEqual(retry.body.snapshot, saved.snapshot);
+  await send({ ...f.cut, requestId: randomUUID() }).expect(409);
+  const history = await request(app.getHttpServer())
+    .get(`${f.cashBase}/cuts?day=2026-01-15`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(history.body.length, 1);
+  assert.deepEqual(history.body[0].snapshot, saved.snapshot);
+  const updated = await send({
+    ...f.cut,
+    requestId: randomUUID(),
+    expectedTotalCents: 14500,
+    expectedPaymentCount: 3,
+    countedCents: 17000,
+  }).expect(201);
+  assert.equal(updated.body.snapshot.expectedCents, 16600);
+  assert.equal(updated.body.snapshot.differenceCents, 400);
+  await assert.rejects(
+    db.cashCut.update({ where: { id: saved.id }, data: { openingCents: -1 } }),
+  );
+});
+
+it("protects sales and cuts by live role, restaurant and assigned branch", async () => {
+  const f = await cashFixture();
+  for (const role of ["WAITER", "KITCHEN"]) {
+    await request(app.getHttpServer())
+      .get(`${f.cashBase}/summary?day=2026-01-15`)
+      .set("Authorization", f.staff[role])
+      .expect(403);
+    await request(app.getHttpServer())
+      .post(`${f.cashBase}/cuts`)
+      .set("Authorization", f.staff[role])
+      .send(f.cut)
+      .expect(403);
+  }
+  await request(app.getHttpServer())
+    .get(`${f.cashBase}/summary?day=2026-01-15`)
+    .expect(401);
+  const foreign = `/api/restaurant/branches/${f.other.id}/cash`;
+  await request(app.getHttpServer())
+    .get(`${foreign}/summary?day=2026-01-15`)
+    .set("Authorization", f.auth)
+    .expect(404);
+  await request(app.getHttpServer())
+    .post(`${foreign}/cuts`)
+    .set("Authorization", f.auth)
+    .send(f.cut)
+    .expect(404);
+  await request(app.getHttpServer())
+    .get(`${foreign}/summary?day=2026-01-15`)
+    .set("Authorization", f.staff.CASHIER)
+    .expect(403);
+  const second = await db.branch.create({
+    data: { restaurantId: a, name: `Cash second ${randomUUID()}` },
+  });
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${second.id}/cash/cuts?day=2026-01-15`)
+    .set("Authorization", f.staff.CASHIER)
+    .expect(403);
+  const user = await db.user.findFirstOrThrow({
+    where: {
+      email: { startsWith: "cashier-" },
+      memberships: { some: { branchId: f.branch.id } },
+    },
+  });
+  await db.membership.updateMany({
+    where: { userId: user.id, branchId: f.branch.id },
+    data: { role: "WAITER" },
+  });
+  await request(app.getHttpServer())
+    .post(`${f.cashBase}/cuts`)
+    .set("Authorization", f.staff.CASHIER)
+    .send(f.cut)
+    .expect(403);
+});
+
+it("validates cash dates and money, handles zero-sales cuts and keeps payments untouched", async () => {
+  const f = await cashFixture();
+  for (const day of [
+    "2026-02-30",
+    "2026-13-01",
+    "2099-01-01",
+    "bad",
+    "1999-01-01",
+  ]) {
+    await request(app.getHttpServer())
+      .get(`${f.cashBase}/summary?day=${day}`)
+      .set("Authorization", f.auth)
+      .expect(400);
+  }
+  for (const override of [
+    { openingCents: -1 },
+    { countedCents: 1.5 },
+    { countedCents: null },
+    { openingCents: 2147483648 },
+    { expectedCents: 123 },
+  ]) {
+    await request(app.getHttpServer())
+      .post(`${f.cashBase}/cuts`)
+      .set("Authorization", f.auth)
+      .send({ ...f.cut, ...override })
+      .expect(400);
+  }
+  const before = await db.payment.findMany({
+    where: { branchId: f.branch.id },
+    orderBy: { id: "asc" },
+  });
+  const cut = await request(app.getHttpServer())
+    .post(`${f.cashBase}/cuts`)
+    .set("Authorization", f.auth)
+    .send({
+      ...f.cut,
+      day: "2026-01-14",
+      openingCents: 10000,
+      countedCents: 10000,
+      expectedTotalCents: 0,
+      expectedPaymentCount: 0,
+    })
+    .expect(201);
+  assert.equal(cut.body.snapshot.expectedCents, 10000);
+  assert.equal(cut.body.snapshot.differenceCents, 0);
+  const after = await db.payment.findMany({
+    where: { branchId: f.branch.id },
+    orderBy: { id: "asc" },
+  });
+  assert.deepEqual(after, before);
+});
+
+it("uses complete sales totals while bounding payment detail to 200 rows", async () => {
+  const f = await orderFixture();
+  const data = Array.from({ length: 205 }, (_, i) => ({
+    id: randomUUID(),
+    restaurantId: a,
+    branchId: f.branch.id,
+    tableId: f.table.id,
+    number: i + 1,
+    tableName: "Mesa 1",
+    createdByName: "Load fixture",
+    requestId: randomUUID(),
+    requestHash: "fixture",
+    status: "CLOSED" as const,
+    totalCents: 100,
+  }));
+  await db.order.createMany({ data });
+  await db.payment.createMany({
+    data: data.map((o) => ({
+      id: randomUUID(),
+      orderId: o.id,
+      restaurantId: a,
+      branchId: f.branch.id,
+      requestId: randomUUID(),
+      requestHash: "fixture",
+      method: "CASH" as const,
+      amountCents: 100,
+      receivedCents: 100,
+      changeCents: 0,
+      actorName: "Load fixture",
+      createdAt: new Date("2026-01-15T12:00:00Z"),
+    })),
+  });
+  const res = await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.branch.id}/cash/summary?day=2026-01-15`)
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(res.body.paymentCount, 205);
+  assert.equal(res.body.totalCents, 20500);
+  assert.equal(res.body.payments.length, 200);
+});
+
+it("resolves local cash days without depending on machine timezone", () => {
+  assert.equal(mexicoDay(new Date("2026-01-16T05:59:59Z")), "2026-01-15");
+  const range = cashRange("2026-01-15", new Date("2026-01-15T18:30:00Z"));
+  assert.equal(range.start.toISOString(), "2026-01-15T06:00:00.000Z");
+  assert.equal(range.end.toISOString(), "2026-01-15T18:30:00.000Z");
+  assert.throws(() =>
+    cashRange("2026-01-16", new Date("2026-01-15T18:30:00Z")),
+  );
 });

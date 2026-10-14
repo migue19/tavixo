@@ -1,4 +1,4 @@
-# Tavixo · Sprint 7
+# Tavixo · Sprint 8
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -9,6 +9,25 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
 Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Caja y ventas del Sprint 8
+
+**Caja y ventas** permite consultar cobros por día y sucursal en horario `America/Mexico_City`, separar efectivo/tarjeta y guardar una conciliación con fondo inicial, efectivo contado, responsable, fecha y notas.
+
+- Ventas basadas exclusivamente en `Payment.createdAt`, independientemente del día en que se abrió la cuenta. Cuentas abiertas/canceladas y cerradas históricas sin pago no se cuentan como ventas cobradas.
+- Efectivo esperado = fondo inicial + ventas netas en efectivo. El cambio ya está descontado; no se suma el dinero recibido bruto. Diferencia = efectivo contado − efectivo esperado: positivo sobrante, negativo faltante. El efectivo contado debe incluir el fondo inicial.
+- OWNER/MANAGER consultan sus sucursales; CASHIER sólo la asignada. WAITER/KITCHEN no acceden. Sin enlaces públicos ni caché de datos privados.
+- Corte guardado inmutable por API: conserva los totales y el detalle del momento. No modifica pagos, cierra cuentas ni bloquea la operación. Varios cortes del día son **acumulados desde medianoche**, no turnos: no se suman entre sí.
+- Resumen actual requiere actualización manual. Si cambiaron los pagos entre consulta y corte, el servidor devuelve conflicto y solicita actualizar. UUID de envío y reintentos conservan un único corte ante respuesta perdida.
+- Totales incluyen todos los pagos; detalle acotado a los últimos 200 y listado a los últimos 50 cortes del día, con aviso en pantalla. No hay exportación de reportes, turnos, retiros, depósitos, gastos, propinas o devoluciones en esta entrega.
+
+| Método | Ruta | Uso |
+|---|---|---|
+| GET | /api/restaurant/branches/:branchId/cash/summary?day=YYYY-MM-DD | Resumen diario y últimos 200 cobros |
+| GET | /api/restaurant/branches/:branchId/cash/cuts?day=YYYY-MM-DD | Últimos 50 cortes guardados del día |
+| POST | /api/restaurant/branches/:branchId/cash/cuts | Guardar corte con requestId, day, openingCents, countedCents, expectedTotalCents, expectedPaymentCount y notes opcional |
+
+Migración aditiva `20261014050000_cash_cuts`: agrega CashCut y su relación de sucursal; no reescribe órdenes, rondas o pagos ni crea cortes históricos. Despliegue pendiente de autorización específica. Conservar tabla y cortes al revertir aplicaciones; el Sprint 7 no expone este módulo, pero sigue operando con el esquema ampliado.
 
 ## Rondas del Sprint 7
 

@@ -315,7 +315,42 @@ try {
         "Legacy owner",
       ],
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint7.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    await cp(
+      "apps/api/prisma/migrations/20261014040000_rounds",
+      "work/upgrade/migrations/20261014040000_rounds",
+      { recursive: true },
+    );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const beforeSprint8 = await client.query(
+      'SELECT row_to_json(o) AS original FROM "OrderRound" o ORDER BY id',
+    );
     await run(["run", "db:migrate"]);
+    const afterSprint8 = await client.query(
+      'SELECT row_to_json(o) AS original FROM "OrderRound" o ORDER BY id',
+    );
+    assert(
+      JSON.stringify(beforeSprint8.rows) === JSON.stringify(afterSprint8.rows),
+      "Sprint 8 migration preserves all existing rounds",
+    );
+    const cashCuts = await client.query(
+      'SELECT count(*)::int AS count FROM "CashCut"',
+    );
+    assert(
+      cashCuts.rows[0].count === 0,
+      "Sprint 8 migration does not invent cash cuts",
+    );
     const preservedOrders = await client.query(
       'SELECT o.status,o."totalCents",i.quantity,i."unitPriceCents",p.id AS payment FROM "Order" o JOIN "OrderItem" i ON i."orderId"=o.id LEFT JOIN "Payment" p ON p."orderId"=o.id WHERE o."restaurantId"=$1 ORDER BY o.number',
       [legacy.restaurant],

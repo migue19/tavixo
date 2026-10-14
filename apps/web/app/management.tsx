@@ -2,6 +2,7 @@
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./catalog";
 import Orders from "./orders";
+import Cash from "./cash";
 export type Session = {
   accessToken: string;
   expiresIn: number;
@@ -183,6 +184,9 @@ export default function Management({
           ["tables", "Mesas"],
           ["orders", "Comandas"],
           ["kitchen", "Cocina"],
+          ...(["OWNER", "MANAGER", "CASHIER"].includes(session.user.role)
+            ? [["cash", "Caja y ventas"]]
+            : []),
           ...(administrative ? [["team", "Equipo"]] : []),
           ["account", "Mi cuenta"],
         ].map(([key, label]) => (
@@ -654,6 +658,14 @@ export default function Management({
           branches={branches}
           online={online}
           kitchen={tab === "kitchen"}
+        />
+      )}
+      {tab === "cash" && (
+        <Cash
+          key={session.restaurant.id}
+          session={session}
+          branches={branches}
+          online={online}
         />
       )}
       {tab === "account" && (

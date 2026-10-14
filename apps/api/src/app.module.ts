@@ -17,6 +17,8 @@ import { CatalogController } from "./catalog.controller";
 import { CatalogService } from "./catalog.service";
 import { OrdersController } from "./orders.controller";
 import { OrdersService } from "./orders.service";
+import { CashController } from "./cash.controller";
+import { CashService } from "./cash.service";
 import { config } from "./config";
 @Controller("health")
 class HealthController {
@@ -55,6 +57,7 @@ class HealthController {
     HealthController,
     CatalogController,
     OrdersController,
+    CashController,
   ],
   providers: [
     PrismaService,
@@ -63,6 +66,7 @@ class HealthController {
     ManagementService,
     CatalogService,
     OrdersService,
+    CashService,
     { provide: APP_GUARD, useClass: ThrottlerGuard },
   ],
 })

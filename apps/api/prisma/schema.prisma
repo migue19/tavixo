@@ -43,6 +43,7 @@ model Branch {
   products Product[]
   tables DiningTable[]
   orders Order[]
+  cashCuts CashCut[]
   @@unique([id, restaurantId])
   @@unique([restaurantId, name])
   @@index([restaurantId, active])
@@ -222,4 +223,22 @@ model OrderRound {
   @@unique([id, orderId, branchId, restaurantId])
   @@unique([orderId, number])
   @@unique([branchId, requestId])
+}
+
+model CashCut {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  day String
+  requestId String @db.Uuid
+  requestHash String
+  openingCents Int
+  countedCents Int
+  actorName String
+  notes String @default("")
+  snapshot Json
+  createdAt DateTime @default(now())
+  branch Branch @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Restrict)
+  @@unique([branchId, requestId])
+  @@index([restaurantId, branchId, day, createdAt])
 }

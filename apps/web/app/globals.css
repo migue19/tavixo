@@ -29,3 +29,9 @@ textarea{display:block;width:100%;font:inherit;font-size:15px;margin-top:9px;pad
 .order-round .actions button {
   margin-top: 6px;
 }
+
+.cash-table { overflow-x: auto; }
+.cash-table table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+.cash-table th,.cash-table td { padding:12px; border-bottom:1px solid #dce4da; }
+.cash-reconciliation { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.cash-reconciliation dd { text-align:right; margin:0; font-weight:bold; }
