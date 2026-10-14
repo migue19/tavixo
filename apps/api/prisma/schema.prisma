@@ -146,6 +146,7 @@ model Order {
   table DiningTable @relation(fields: [tableId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
   items OrderItem[]
   events OrderEvent[]
+  payment Payment?
   @@unique([id, branchId, restaurantId])
   @@unique([branchId, number])
   @@unique([branchId, requestId])
@@ -174,4 +175,28 @@ model OrderEvent {
   reason String @default("")
   createdAt DateTime @default(now())
   order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: Cascade)
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+}
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  orderId String @unique @db.Uuid
+  restaurantId String @db.Uuid
+  branchId String @db.Uuid
+  requestId String @db.Uuid
+  requestHash String
+  method PaymentMethod
+  amountCents Int
+  receivedCents Int
+  changeCents Int
+  reference String @default("")
+  actorName String
+  createdAt DateTime @default(now())
+  order Order @relation(fields: [orderId, branchId, restaurantId], references: [id, branchId, restaurantId], onDelete: NoAction)
+  @@unique([orderId, branchId, restaurantId])
+  @@unique([branchId, requestId])
+  @@index([restaurantId, branchId, createdAt])
 }

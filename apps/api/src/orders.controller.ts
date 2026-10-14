@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { AuthGuard, Roles, TenantRequest } from "./auth.guard";
-import { CreateOrderDto, OrderStatusDto } from "./orders.dto";
+import { CreateOrderDto, OrderStatusDto, CreatePaymentDto } from "./orders.dto";
 import { OrdersService } from "./orders.service";
 const uuid = () => new ParseUUIDPipe({ version: "4" });
 @Controller("restaurant/branches/:branchId/orders")
@@ -32,6 +32,16 @@ export class OrdersController {
     @Body() dto: CreateOrderDto,
   ) {
     return this.orders.create(req.member, branch, dto);
+  }
+  @Post(":id/payment")
+  @Roles(Role.OWNER, Role.MANAGER, Role.CASHIER)
+  payment(
+    @Req() req: TenantRequest,
+    @Param("branchId", uuid()) branch: string,
+    @Param("id", uuid()) id: string,
+    @Body() dto: CreatePaymentDto,
+  ) {
+    return this.orders.pay(req.member, branch, id, dto);
   }
   @Patch(":id/status")
   status(

@@ -79,6 +79,11 @@ before(
 );
 after(async () => {
   if (db) {
+    await db.payment.deleteMany({
+      where: {
+        restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
+      },
+    });
     await db.order.deleteMany({
       where: {
         restaurantId: { in: [a, b, ...extraRestaurants].filter(Boolean) },
@@ -1146,9 +1151,17 @@ it("allows only authorized state transitions, records audit and releases table a
     .set("Authorization", f.auth)
     .send({ ...f.body, requestId: randomUUID() })
     .expect(409);
-  const closed = await change(f.staff.CASHIER, "CLOSED", "DELIVERED").expect(
-    200,
-  );
+  await change(f.staff.CASHIER, "CLOSED", "DELIVERED").expect(400);
+  const closed = await request(app.getHttpServer())
+    .post(`${f.base}/${created.body.id}/payment`)
+    .set("Authorization", f.staff.CASHIER)
+    .send({
+      requestId: randomUUID(),
+      method: "CASH",
+      receivedCents: 10000,
+      expectedTotalCents: 8700,
+    })
+    .expect(201);
   assert.equal(closed.body.events.length, 5);
   assert.deepEqual(
     closed.body.events.map((e: { status: string }) => e.status),
@@ -1235,4 +1248,190 @@ it("serializes simultaneous submissions and enforces database tenant references"
       data: { quantity: 0 },
     }),
   );
+});
+
+async function paymentFixture() {
+  const f = await orderFixture();
+  const order = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send(f.body)
+    .expect(201);
+  await db.order.update({
+    where: { id: order.body.id },
+    data: { status: "DELIVERED" },
+  });
+  return {
+    ...f,
+    order: order.body,
+    path: `${f.base}/${order.body.id}/payment`,
+    payment: {
+      requestId: randomUUID(),
+      method: "CASH",
+      receivedCents: 10000,
+      expectedTotalCents: 8700,
+    },
+  };
+}
+it("registers cash and change atomically, closes account and retries the exact payment", async () => {
+  const f = await paymentFixture();
+  const pay = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.staff.CASHIER)
+      .send(body);
+  const paid = await pay(f.payment).expect(201);
+  assert.equal(paid.body.status, "CLOSED");
+  assert.equal(paid.body.payment.amountCents, 8700);
+  assert.equal(paid.body.payment.receivedCents, 10000);
+  assert.equal(paid.body.payment.changeCents, 1300);
+  assert.equal(paid.body.payment.actorName, "CASHIER");
+  const replay = await pay(f.payment).expect(201);
+  assert.equal(replay.body.payment.id, paid.body.payment.id);
+  assert.equal(replay.body.events.length, paid.body.events.length);
+  await pay({ ...f.payment, receivedCents: 20000 }).expect(409);
+  await pay({ ...f.payment, requestId: randomUUID() }).expect(409);
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+  assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 1);
+});
+it("requires exact card amount and terminal reference without cash change", async () => {
+  const f = await paymentFixture();
+  const card = {
+    ...f.payment,
+    method: "CARD",
+    receivedCents: 8700,
+    reference: "AUTH-481",
+  };
+  const pay = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.staff.MANAGER)
+      .send(body);
+  await pay({ ...card, reference: " " }).expect(400);
+  await pay({ ...card, receivedCents: 10000 }).expect(400);
+  const paid = await pay(card).expect(201);
+  assert.equal(paid.body.payment.changeCents, 0);
+  assert.equal(paid.body.payment.reference, "AUTH-481");
+  assert.equal(paid.body.payment.method, "CARD");
+  await pay(card).expect(201);
+  await request(app.getHttpServer())
+    .patch(`${f.base}/${f.order.id}/status`)
+    .set("Authorization", f.auth)
+    .send({ status: "CANCELLED", expectedStatus: "CLOSED", reason: "No" })
+    .expect(409);
+});
+it("rejects invalid cash amounts, stale totals, client payment totals and premature or cancelled accounts", async () => {
+  const f = await paymentFixture();
+  const pay = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(body);
+  for (const receivedCents of [-1, 1.5, null, "10000", 2147483648, 8600])
+    await pay({ ...f.payment, receivedCents }).expect(400);
+  await pay({ ...f.payment, expectedTotalCents: 8600 }).expect(409);
+  await pay({ ...f.payment, amountCents: 1 }).expect(400);
+  await pay({ ...f.payment, reference: "Not cash" }).expect(400);
+  await pay({ ...f.payment, method: "OTHER" }).expect(400);
+  await pay({ ...f.payment, method: "CARD", reference: "x".repeat(81) }).expect(
+    400,
+  );
+  await db.order.update({
+    where: { id: f.order.id },
+    data: { status: "SENT" },
+  });
+  await pay(f.payment).expect(409);
+  await db.order.update({
+    where: { id: f.order.id },
+    data: { status: "CANCELLED" },
+  });
+  await pay(f.payment).expect(409);
+  assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 0);
+});
+it("enforces cashier roles, branch and restaurant isolation for payments and replay", async () => {
+  const f = await paymentFixture();
+  for (const role of ["WAITER", "KITCHEN"])
+    await request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.staff[role])
+      .send(f.payment)
+      .expect(403);
+  const other = await db.branch.create({
+    data: { restaurantId: a, name: `Payment sibling ${randomUUID()}` },
+  });
+  await request(app.getHttpServer())
+    .post(`/api/restaurant/branches/${other.id}/orders/${f.order.id}/payment`)
+    .set("Authorization", f.staff.CASHIER)
+    .send(f.payment)
+    .expect(403);
+  await request(app.getHttpServer())
+    .post(`/api/restaurant/branches/${other.id}/orders/${f.order.id}/payment`)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(404);
+  await request(app.getHttpServer())
+    .post(`/api/restaurant/branches/${f.other.id}/orders/${f.order.id}/payment`)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(404);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  const second = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, tableId: f.table2.id, requestId: randomUUID() })
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(`${f.base}/${second.body.id}/payment`)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(409);
+});
+it("handles concurrent payments exactly once and protects database amounts and tenant keys", async () => {
+  const f = await paymentFixture();
+  const pay = (body: object) =>
+    request(app.getHttpServer())
+      .post(f.path)
+      .set("Authorization", f.auth)
+      .send(body);
+  const results = await Promise.all([pay(f.payment), pay(f.payment)]);
+  assert.deepEqual(
+    results.map((r) => r.status),
+    [201, 201],
+  );
+  assert.equal(results[0].body.payment.id, results[1].body.payment.id);
+  const paymentId = results[0].body.payment.id;
+  await assert.rejects(
+    db.payment.update({ where: { id: paymentId }, data: { changeCents: 0 } }),
+  );
+  await assert.rejects(
+    db.payment.update({ where: { id: paymentId }, data: { restaurantId: b } }),
+  );
+  const second = await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, tableId: f.table2.id, requestId: randomUUID() })
+    .expect(201);
+  await db.order.update({
+    where: { id: second.body.id },
+    data: { status: "DELIVERED" },
+  });
+  const nextPath = `${f.base}/${second.body.id}/payment`;
+  const races = await Promise.all(
+    [1, 2].map(() =>
+      request(app.getHttpServer())
+        .post(nextPath)
+        .set("Authorization", f.auth)
+        .send({ ...f.payment, requestId: randomUUID() }),
+    ),
+  );
+  assert.deepEqual(races.map((r) => r.status).sort(), [201, 409]);
+  assert.equal(await db.payment.count({ where: { branchId: f.branch.id } }), 2);
 });

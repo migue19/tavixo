@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
+import PaymentPanel, { type Payment } from "./payment";
 import type { Session } from "./management";
 type Branch = { id: string; name: string; active: boolean };
 type Product = {
@@ -18,7 +19,8 @@ type Payload = {
   notes: string;
   items: Line[];
 };
-type Order = {
+export type Order = {
+  payment: Payment | null;
   id: string;
   number: number;
   tableId: string;
@@ -90,6 +92,7 @@ export default function Orders({
   const role = session.user.role;
   const admin = ["OWNER", "MANAGER"].includes(role);
   const floor = admin || ["WAITER", "CASHIER"].includes(role);
+  const canPay = admin || role === "CASHIER";
   const cook = admin || role === "KITCHEN";
   const storageKey = `tavixo-order-${session.restaurant.id}-${branchId}`;
   useEffect(() => {
@@ -585,17 +588,6 @@ export default function Orders({
                   Registrar entrega
                 </button>
               )}
-              {floor && order.status === "DELIVERED" && (
-                <button
-                  disabled={disabled}
-                  onClick={() => {
-                    setConfirmation({ order, status: "CLOSED" });
-                    setReason("");
-                  }}
-                >
-                  Cerrar cuenta y liberar mesa
-                </button>
-              )}
               {admin && !finished(order) && (
                 <button
                   className="secondary"
@@ -618,41 +610,22 @@ export default function Orders({
                   void change(confirmation.order, confirmation.status, reason);
                 }}
               >
-                <h4>
-                  {confirmation.status === "CLOSED"
-                    ? "¿Cerrar esta cuenta?"
-                    : "¿Cancelar esta comanda?"}
-                </h4>
-                {confirmation.status === "CLOSED" ? (
-                  <p>
-                    La mesa quedará libre. Tavixo aún no registra pagos; revisa
-                    que ya atendiste el cobro por tu medio habitual.
-                  </p>
-                ) : (
-                  <label>
-                    Motivo de cancelación
-                    <input
-                      autoFocus
-                      required
-                      minLength={1}
-                      maxLength={500}
-                      value={reason}
-                      disabled={disabled}
-                      onChange={(e) => setReason(e.target.value)}
-                    />
-                  </label>
-                )}
+                <h4>¿Cancelar esta comanda?</h4>
+                <label>
+                  Motivo de cancelación
+                  <input
+                    autoFocus
+                    required
+                    minLength={1}
+                    maxLength={500}
+                    value={reason}
+                    disabled={disabled}
+                    onChange={(e) => setReason(e.target.value)}
+                  />
+                </label>
                 <div className="actions">
-                  <button
-                    disabled={
-                      disabled ||
-                      (confirmation.status === "CANCELLED" && !reason.trim())
-                    }
-                  >
-                    Confirmar{" "}
-                    {confirmation.status === "CLOSED"
-                      ? "cierre"
-                      : "cancelación"}
+                  <button disabled={disabled || !reason.trim()}>
+                    Confirmar cancelación
                   </button>
                   <button
                     type="button"
@@ -664,6 +637,24 @@ export default function Orders({
                   </button>
                 </div>
               </form>
+            )}
+            {!kitchen && (
+              <PaymentPanel
+                order={order}
+                canPay={canPay}
+                disabled={disabled}
+                api={api}
+                storageKey={`tavixo-payment-${session.restaurant.id}-${branchId}-${order.id}`}
+                onPaid={(next) => {
+                  setOrders((current) =>
+                    current.map((o) => (o.id === next.id ? next : o)),
+                  );
+                  setNotice(
+                    `Pago de ${money(next.totalCents)} registrado. Mesa liberada.`,
+                  );
+                  setHistory(true);
+                }}
+              />
             )}
             <details>
               <summary>Actividad</summary>

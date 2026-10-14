@@ -218,7 +218,86 @@ try {
       'INSERT INTO "DiningTable" (id,"restaurantId","branchId",name,capacity) VALUES ($1,$2,$3,$4,$5)',
       [legacyTable, legacy.restaurant, legacyBranch, "Mesa existente", 6],
     );
+    await cp(
+      "apps/api/test/fixtures/schema-sprint4.prisma",
+      "work/upgrade/schema.prisma",
+    );
+    await cp(
+      "apps/api/prisma/migrations/20261014020000_orders",
+      "work/upgrade/migrations/20261014020000_orders",
+      { recursive: true },
+    );
+    await run([
+      "exec",
+      "--",
+      "prisma",
+      "migrate",
+      "deploy",
+      "--schema",
+      "work/upgrade/schema.prisma",
+    ]);
+    const legacyOrders = [randomUUID(), randomUUID()];
+    for (const [i, id] of legacyOrders.entries()) {
+      const status = i === 0 ? "DELIVERED" : "CLOSED";
+      await client.query(
+        'INSERT INTO "Order" (id,"restaurantId","branchId","tableId",number,"tableName","createdByName","requestId","requestHash",status,"totalCents","updatedAt") VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())',
+        [
+          id,
+          legacy.restaurant,
+          legacyBranch,
+          legacyTable,
+          i + 1,
+          "Mesa existente",
+          "Legacy owner",
+          randomUUID(),
+          "a".repeat(64),
+          status,
+          5800,
+        ],
+      );
+      await client.query(
+        'INSERT INTO "OrderItem" (id,"orderId","restaurantId","branchId","productId",name,quantity,"unitPriceCents") VALUES ($1,$2,$3,$4,$5,$6,$7,$8)',
+        [
+          randomUUID(),
+          id,
+          legacy.restaurant,
+          legacyBranch,
+          legacyProduct,
+          "Taco chico",
+          2,
+          2900,
+        ],
+      );
+      await client.query(
+        'INSERT INTO "OrderEvent" (id,"orderId","branchId","restaurantId",status,"actorName") VALUES ($1,$2,$3,$4,$5,$6)',
+        [
+          randomUUID(),
+          id,
+          legacyBranch,
+          legacy.restaurant,
+          status,
+          "Legacy owner",
+        ],
+      );
+    }
     await run(["run", "db:migrate"]);
+    const preservedOrders = await client.query(
+      'SELECT o.status,o."totalCents",i.quantity,i."unitPriceCents",p.id AS payment FROM "Order" o JOIN "OrderItem" i ON i."orderId"=o.id LEFT JOIN "Payment" p ON p."orderId"=o.id WHERE o."restaurantId"=$1 ORDER BY o.number',
+      [legacy.restaurant],
+    );
+    assert(
+      preservedOrders.rows.length === 2 &&
+        preservedOrders.rows[0].status === "DELIVERED" &&
+        preservedOrders.rows[1].status === "CLOSED" &&
+        preservedOrders.rows.every(
+          (o) =>
+            o.totalCents === 5800 &&
+            o.quantity === 2 &&
+            o.unitPriceCents === 2900 &&
+            o.payment === null,
+        ),
+      "Sprint 4 upgrade preserves delivered/closed orders and prices without inventing payments",
+    );
     const catalogPreserved = await client.query(
       'SELECT p.name,p."priceCents",p.available,t.capacity FROM "Product" p JOIN "DiningTable" t ON t."branchId"=p."branchId" WHERE p.id=$1 AND t.id=$2',
       [legacyProduct, legacyTable],
@@ -243,6 +322,9 @@ try {
         upgraded.rows[0].session === legacy.session,
       "Sprint 1 upgrade preserves credentials, roles and sessions and backfills the main branch",
     );
+    await client.query('DELETE FROM "Order" WHERE "restaurantId"=$1', [
+      legacy.restaurant,
+    ]);
     await client.query('DELETE FROM "Restaurant" WHERE id=$1', [
       legacy.restaurant,
     ]);

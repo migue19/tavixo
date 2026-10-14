@@ -5,12 +5,19 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { Membership, OrderStatus, Prisma, Role } from "@prisma/client";
+import {
+  Membership,
+  OrderStatus,
+  PaymentMethod,
+  Prisma,
+  Role,
+} from "@prisma/client";
 import { createHash } from "node:crypto";
 import { PrismaService } from "./prisma.service";
-import { CreateOrderDto, OrderStatusDto } from "./orders.dto";
+import { CreateOrderDto, OrderStatusDto, CreatePaymentDto } from "./orders.dto";
 const include = {
   items: true,
+  payment: true,
   events: { orderBy: { createdAt: "asc" as const } },
 };
 const terminal = [OrderStatus.CLOSED, OrderStatus.CANCELLED];
@@ -187,6 +194,100 @@ export class OrdersService {
       });
     });
   }
+  pay(actor: Membership, branchId: string, id: string, dto: CreatePaymentDto) {
+    const hash = createHash("sha256")
+      .update(
+        JSON.stringify({
+          orderId: id,
+          method: dto.method,
+          receivedCents: dto.receivedCents,
+          expectedTotalCents: dto.expectedTotalCents,
+          reference: dto.reference ?? "",
+        }),
+      )
+      .digest("hex");
+    return this.write(actor, branchId, async (tx, member, name) => {
+      if (!this.admin(member) && member.role !== Role.CASHIER)
+        throw new ForbiddenException(
+          "Sólo caja o administración puede registrar cobros",
+        );
+      const replay = await tx.payment.findUnique({
+        where: { branchId_requestId: { branchId, requestId: dto.requestId } },
+      });
+      if (replay) {
+        if (
+          replay.restaurantId !== member.restaurantId ||
+          replay.orderId !== id ||
+          replay.requestHash !== hash
+        )
+          throw new ConflictException(
+            "La referencia ya corresponde a otro cobro",
+          );
+        return tx.order.findFirstOrThrow({
+          where: { id, restaurantId: member.restaurantId, branchId },
+          include,
+        });
+      }
+      const order = await tx.order.findFirst({
+        where: { id, restaurantId: member.restaurantId, branchId },
+        include,
+      });
+      if (!order) throw new NotFoundException("Comanda no encontrada");
+      if (order.payment || order.status !== OrderStatus.DELIVERED)
+        throw new ConflictException(
+          "La cuenta debe estar entregada y sin cobro registrado",
+        );
+      if (dto.expectedTotalCents !== order.totalCents)
+        throw new ConflictException(
+          "El total cambió; revisa la cuenta antes de cobrar",
+        );
+      if (dto.receivedCents < order.totalCents)
+        throw new BadRequestException("El importe recibido no cubre la cuenta");
+      if (dto.method === PaymentMethod.CARD) {
+        if (dto.receivedCents !== order.totalCents)
+          throw new BadRequestException(
+            "El importe con tarjeta debe coincidir con el total",
+          );
+        if (!dto.reference?.trim())
+          throw new BadRequestException("Indica el folio de la terminal");
+      } else if (dto.reference)
+        throw new BadRequestException(
+          "El folio de terminal corresponde sólo a pagos con tarjeta",
+        );
+      await tx.payment.create({
+        data: {
+          orderId: id,
+          branchId,
+          restaurantId: member.restaurantId,
+          requestId: dto.requestId,
+          requestHash: hash,
+          method: dto.method,
+          amountCents: order.totalCents,
+          receivedCents: dto.receivedCents,
+          changeCents: dto.receivedCents - order.totalCents,
+          reference: dto.reference ?? "",
+          actorName: name,
+        },
+      });
+      return tx.order.update({
+        where: { id },
+        data: {
+          status: OrderStatus.CLOSED,
+          events: {
+            create: {
+              status: OrderStatus.CLOSED,
+              actorName: name,
+              reason:
+                dto.method === PaymentMethod.CASH
+                  ? "Cobro en efectivo registrado"
+                  : "Cobro con tarjeta registrado",
+            },
+          },
+        },
+        include,
+      });
+    });
+  }
   status(actor: Membership, branchId: string, id: string, dto: OrderStatusDto) {
     return this.write(actor, branchId, async (tx, member, name) => {
       const order = await tx.order.findFirst({
@@ -214,11 +315,14 @@ export class OrdersService {
         throw new ConflictException(
           "La comanda cambió; actualiza antes de continuar",
         );
+      if (dto.status === OrderStatus.CLOSED)
+        throw new BadRequestException(
+          "Registra el cobro para cerrar la cuenta",
+        );
       const next: Partial<Record<OrderStatus, OrderStatus>> = {
         SENT: OrderStatus.PREPARING,
         PREPARING: OrderStatus.READY,
         READY: OrderStatus.DELIVERED,
-        DELIVERED: OrderStatus.CLOSED,
       };
       if (dto.status === OrderStatus.CANCELLED) {
         if (terminal.includes(order.status as "CLOSED" | "CANCELLED"))

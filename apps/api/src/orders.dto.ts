@@ -13,7 +13,7 @@ import {
   ValidateIf,
   ValidateNested,
 } from "class-validator";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus, PaymentMethod } from "@prisma/client";
 const trim = ({ value }: { value: unknown }) =>
   typeof value === "string" ? value.trim() : value;
 export class OrderLineDto {
@@ -48,4 +48,16 @@ export class OrderStatusDto {
   @IsString()
   @Length(0, 500)
   reason?: string;
+}
+
+export class CreatePaymentDto {
+  @IsUUID("4") requestId!: string;
+  @IsEnum(PaymentMethod) method!: PaymentMethod;
+  @IsInt() @Min(0) @Max(2147483647) receivedCents!: number;
+  @IsInt() @Min(0) @Max(2147483647) expectedTotalCents!: number;
+  @ValidateIf((_o, v) => v !== undefined)
+  @Transform(trim)
+  @IsString()
+  @Length(0, 80)
+  reference?: string;
 }

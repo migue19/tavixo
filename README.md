@@ -1,4 +1,4 @@
-# Tavixo · Sprint 4
+# Tavixo · Sprint 5
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -8,18 +8,37 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
-Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Los cobros llegarán en el siguiente sprint. No hay registro público ni autoasignación de roles.
+Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Menú y configuración de mesas están disponibles por sucursal. Incluye comandas por mesa, ocupación y tablero de cocina con actualización cada 5 segundos. Incluye cobros en efectivo y registro de pagos aprobados en terminal externa. No hay registro público ni autoasignación de roles.
+
+## Cobros del Sprint 5
+
+Desde **Comandas**, OWNER/MANAGER/CASHIER pueden cobrar una cuenta Entregada. Meseros registran la entrega y Cocina prepara; ambos pueden consultar el historial, pero no registrar pagos.
+
+- **Efectivo:** captura el importe recibido en MXN. Debe cubrir el total; el servidor calcula cambio y registra total/recibido/cambio, actor y fecha.
+- **Tarjeta:** realiza el cobro en la terminal externa y después registra su folio. La interfaz requiere confirmar que fue aprobado. El importe debe ser exactamente el total; no hay cambio. Tavixo no procesa ni solicita datos de tarjeta.
+- Registro del pago, evento de cierre y liberación de mesa ocurren en una sola transacción. Una cuenta tiene un solo pago; no hay abonos, pagos mixtos, propinas, descuentos ni reembolsos en este sprint.
+- Los reintentos usan una referencia UUID. La misma referencia/cuerpo devuelve el mismo resultado; cuerpos distintos o un segundo pago devuelven 409. El navegador conserva sólo el registro pendiente en sessionStorage, sin tokens; muestra «no vuelvas a cobrar al cliente» si falta confirmar la respuesta.
+- El cierre directo por `PATCH status` se rechaza. Una cuenta nueva se cierra al registrar el pago, o se cancela con el motivo y permisos anteriores. Las cuentas cerradas del Sprint 4 se conservan como **cerradas sin pago registrado**, sin inventarles pagos.
+- La consulta de cuentas incluye resumen del pago: método, total, recibido/cambio, folio de terminal, actor y fecha. No existe edición/borrado de pagos ni integración con bancos/terminales.
+
+| Método | Ruta | Acceso |
+|---|---|---|
+| POST | /api/restaurant/branches/:branchId/orders/:id/payment | OWNER/MANAGER/CASHIER; requestId, method CASH/CARD, receivedCents, expectedTotalCents, reference para tarjeta |
+
+`expectedTotalCents` sirve para detectar un total obsoleto; el importe del pago se obtiene de la cuenta guardada. Todos los importes son enteros de 0 a 2147483647 centavos MXN. Migración aditiva `20261014030000_payments`: tabla Payment, índices únicos, FK compuesta y CHECK de importes/método. Conserva cuentas, catálogo, mesas, credenciales y eventos previos. Requiere respaldo previo y autorización específica antes de aplicarse en producción.
+
+Una reversión de aplicaciones a Sprint 4 conserva la tabla Payment, pero esa versión no muestra pagos y permite cierres sin pago; limitar el uso de caja hasta volver al Sprint 5. No revertir datos financieros ni aplicar la nueva migración sin respaldo.
 
 ## Comandas y cocina del Sprint 4
 
 - **Comandas:** selecciona una mesa libre, productos, cantidades e indicaciones. El envío abre la cuenta y la ocupa. Sólo OWNER/MANAGER/WAITER/CASHIER crean comandas.
-- **Cocina:** OWNER/MANAGER/KITCHEN avanzan de Enviada a En preparación y Lista. WAITER/CASHIER y administradores registran Entregada y cierran la cuenta para liberar la mesa.
+- **Cocina:** OWNER/MANAGER/KITCHEN avanzan de Enviada a En preparación y Lista. WAITER/CASHIER y administradores registran la entrega. El Sprint 5 cierra la cuenta al registrar el cobro.
 - **Cancelación:** sólo OWNER/MANAGER, motivo obligatorio y registro de actividad. No se puede alterar una cuenta terminada.
 - Los nombres, precios y total se congelan al enviar. La API calcula el total desde productos activos/disponibles y categorías activas de la misma sucursal. Rechaza precios del cliente, cantidades inválidas y productos repetidos en líneas separadas.
 - Referencia UUID por envío; reintentar el mismo cuerpo devuelve la misma comanda, aunque el precio del menú haya cambiado. Reusar la referencia con otro cuerpo devuelve 409. La web conserva únicamente el envío pendiente en sessionStorage, sin tokens, por restaurante/sucursal, y lo elimina al confirmarse; no guarda respuestas API ni permite enviar sin conexión.
 - Una cuenta abierta por mesa, protegida por transacción y por índice único parcial de PostgreSQL. Cambios de estado requieren `expectedStatus` para detectar acciones concurrentes. Historial con nombre del actor, fecha y motivo; consulta de todas las abiertas más las últimas 50 terminadas.
 - Precio unitario de 0 a 99999999 centavos; 1–100 unidades por producto, máximo 100 líneas y total hasta 2147483647 centavos. Moneda MXN.
-- Actualización automática por consultas cada 5 segundos; este sprint no incorpora Socket.IO. Una comanda equivale a una cuenta completa: agregar rondas, dividir cuentas, cobros, tickets e inventario quedan pendientes. Cerrar cuenta **no registra ni confirma un pago**; la interfaz avisa antes de liberar la mesa.
+- Actualización automática por consultas cada 5 segundos; este sprint no incorpora Socket.IO. Una comanda equivale a una cuenta completa: agregar rondas, dividir cuentas, tickets e inventario quedan pendientes. Desde el Sprint 5, el cierre requiere registrar el cobro.
 
 | Método | Ruta | Acceso |
 |---|---|---|
