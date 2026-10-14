@@ -1,4 +1,4 @@
-# Tavixo · Sprint 1
+# Tavixo · Sprint 2
 
 Monorepo npm con Next.js 16 / React 19 (PWA), NestJS 11, Prisma 6 y PostgreSQL 17.9. Node.js 24 LTS recomendado. Piloto: **Birria El Cachanilla**, slug `birria-el-cachanilla`.
 
@@ -8,7 +8,34 @@ Login, JWT de acceso (15 minutos), refresh token opaco (7 días) en cookie HttpO
 
 La PWA incluye manifiesto, iconos PNG, service worker y pantalla de desconexión. No guarda datos privados ni respuestas API en caché. La operación requiere conexión en este sprint. Instalación desde navegador compatible sobre HTTPS o localhost; el comportamiento de instalación varía según navegador.
 
-No incluye todavía mesas, comandas, cocina en tiempo real, cobros ni gestión de altas del equipo/sucursales. Los miembros se provisionan por seed o una herramienta administrativa controlada; no hay endpoint que permita asignarse un rol.
+Incluye administración de sucursales y equipo, asignación de roles y sucursal, desactivación/reactivación, creación de restaurantes y cambio de contexto entre las membresías autorizadas. Cada usuario puede cambiar su propia contraseña. Mesas, comandas, cocina en tiempo real y cobros llegarán en los siguientes sprints. No hay registro público ni autoasignación de roles.
+
+## Administración del Sprint 2
+
+- **Resumen:** nombre del restaurante; OWNER puede crear otro restaurante independiente con Sucursal Principal. El selector superior sólo muestra membresías activas de la identidad autenticada. Cambiar restaurante emite una nueva sesión y revoca la anterior.
+- **Sucursales:** OWNER y MANAGER crean, editan y desactivan/reactivan. Debe quedar al menos una activa. Los roles operativos consultan únicamente su sucursal asignada; una sucursal inactiva impide login/refresh y revoca sus sesiones operativas.
+- **Equipo:** OWNER administra gerentes y roles operativos; MANAGER sólo administra WAITER/CASHIER/KITCHEN. El propietario y los propios permisos no se modifican desde el equipo. Cambiar rol/sucursal o estado revoca las sesiones de esa membresía, sin afectar sus otras membresías.
+- **Mi cuenta:** contraseña actual requerida para cambiarla; el cambio revoca todas las sesiones de esa identidad. Se serializa el login con el cambio para impedir emitir sesiones nuevas con una contraseña anterior.
+
+Las altas de empleados requieren un correo nuevo y contraseña de al menos 12 caracteres. Un correo ya existente devuelve 409 y no altera la identidad ni contraseña global; invitar una identidad existente a otro restaurante requerirá un flujo de consentimiento futuro. No se envían correos ni invitaciones en este sprint. No hay borrado de usuarios, transferencia de propiedad ni restablecimiento administrativo de contraseñas compartidas.
+
+La relación compuesta Branch/Membership garantiza en PostgreSQL que una sucursal pertenezca al mismo restaurante de la membresía. Las escrituras administrativas bloquean la fila del restaurante y vuelven a comprobar el rol dentro de la transacción. No se aceptan valores null para saltarse las validaciones de rol/estado/sucursal.
+
+La migración `20261013010000_management` agrega sucursales, crea Sucursal Principal para cada restaurante existente y asigna las membresías previas, sin alterar hashes de contraseña, roles o sesiones. Las cuentas administrativas pueden gestionar el restaurante aunque su sucursal esté inactiva. Antes de aplicarla en producción, respaldar la DB; es una migración aditiva compatible con las imágenes del Sprint 1 para una reversión de aplicaciones.
+
+| Método | Ruta nueva | Permiso |
+|---|---|---|
+| GET | /api/restaurants | Membresías propias |
+| POST | /api/restaurants | OWNER |
+| POST | /api/auth/switch | Bearer + Origin; restaurantId autorizado |
+| GET | /api/restaurant/branches | Admin: todas; operativo: asignada |
+| POST | /api/restaurant/branches | OWNER/MANAGER |
+| PATCH | /api/restaurant/branches/:id | OWNER/MANAGER |
+| POST | /api/restaurant/members | Según jerarquía de roles |
+| PATCH | /api/restaurant/members/:id | Según jerarquía de roles |
+| PATCH | /api/me/password | Propia identidad, currentPassword/newPassword |
+
+Ver [SPRINT2_RESULTS.md](SPRINT2_RESULTS.md) para la verificación de esta versión.
 
 ## Estructura
 
@@ -111,7 +138,7 @@ npm test
 npm run verify:local
 ```
 
-`verify:local` comprueba que 6000/6001 estén libres, crea un cluster PostgreSQL 17.9 dentro de `work/` en un puerto libre ligado a loopback, aplica migraciones dos veces, ejecuta seed dos veces, typecheck, tests y build. Después arranca los artefactos compilados y comprueba web, proxy, PWA, login piloto y refresh. Apaga los procesos que creó y elimina exclusivamente el cluster temporal. No toca instalaciones PostgreSQL existentes. Credenciales efímeras aleatorias; no escribe `.env` ni registra tokens. Logs en `work/` (ignorados por Git).
+`verify:local` comprueba que 6000/6001 estén libres, crea un cluster PostgreSQL 17.9 dentro de `work/` en un puerto libre ligado a loopback, verifica primero la actualización desde una base del Sprint 1 con datos existentes y confirma que conserva contraseñas, roles y sesiones; luego ejecuta migraciones/seed repetibles, typecheck, tests y build. Después arranca los artefactos compilados y comprueba web, proxy, PWA, login piloto y refresh. Apaga los procesos que creó y elimina exclusivamente el cluster temporal. No toca instalaciones PostgreSQL existentes. Credenciales efímeras aleatorias; no escribe `.env` ni registra tokens. Logs en `work/` (ignorados por Git).
 
 Para integración con PostgreSQL propio, usar una **DB de pruebas separada cuyo nombre termine en `_test`**:
 

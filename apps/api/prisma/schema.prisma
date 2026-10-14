@@ -28,11 +28,27 @@ model Restaurant {
   active Boolean @default(true)
   createdAt DateTime @default(now())
   memberships Membership[]
+  branches Branch[]
+}
+model Branch {
+  id String @id @default(uuid()) @db.Uuid
+  restaurantId String @db.Uuid
+  name String
+  address String @default("")
+  active Boolean @default(true)
+  createdAt DateTime @default(now())
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  memberships Membership[]
+  @@unique([id, restaurantId])
+  @@unique([restaurantId, name])
+  @@index([restaurantId, active])
 }
 model Membership {
   id String @id @default(uuid()) @db.Uuid
   userId String @db.Uuid
   restaurantId String @db.Uuid
+  branchId String? @db.Uuid
+  branch Branch? @relation(fields: [branchId, restaurantId], references: [id, restaurantId], onDelete: Restrict)
   role Role
   active Boolean @default(true)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
