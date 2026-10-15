@@ -7,7 +7,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `df96271` (Sprint 12, parche de seguridad, navegación/reportes visuales e identidad del restaurante). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
+- Código de aplicación actual: `291ffd7` (Sprint 12, parche de seguridad, navegación/reportes visuales e identidad del restaurante). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -61,3 +61,7 @@ Tickets digitales de cuenta y comprobante de pago con vista previa y descarga PD
 ## Identidad del restaurante
 
 Personalización publicada con autorización; logo, paleta de marca y tickets PDF verificados. 34 comprobaciones HTTPS aprobadas, sin migraciones ni cambios de datos o servicios compartidos. Ver [BRANDING_RESULTS.md](BRANDING_RESULTS.md).
+
+## Descarga de reportes Excel
+
+Exportación XLSX publicada con autorización, respaldo previo y actualización exclusiva de API/web. 38 comprobaciones HTTPS y descarga real desde navegador aprobadas. Sin migraciones ni cambios de datos. Ver [EXCEL_REPORTS_RESULTS.md](EXCEL_REPORTS_RESULTS.md).
