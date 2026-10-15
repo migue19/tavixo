@@ -7,7 +7,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `aab0e3f` (Sprint 12 y parche Next.js/React). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
+- Código de aplicación actual: `df96271` (Sprint 12, parche de seguridad, navegación/reportes visuales e identidad del restaurante). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -57,3 +57,7 @@ Cobros en efectivo con cálculo de cambio y registro de pagos aprobados en termi
 ## Actualización al Sprint 6
 
 Tickets digitales de cuenta y comprobante de pago con vista previa y descarga PDF autenticada. Despliegue aprobado con respaldo validado e imágenes de reversión; sólo API/web recreadas. Sin migraciones, datos de catálogo/cuentas/pagos idénticos antes/después, PostgreSQL/otros contenedores y Nginx sin cambios. Pasaron 27 comprobaciones públicas HTTPS y la descarga desde el navegador; total, acentos y condición histórica revisados en el PDF. Ver [SPRINT6_RESULTS.md](SPRINT6_RESULTS.md). Impresión física y envíos automáticos quedan fuera del alcance solicitado.
+
+## Identidad del restaurante
+
+Personalización publicada con autorización; logo, paleta de marca y tickets PDF verificados. 34 comprobaciones HTTPS aprobadas, sin migraciones ni cambios de datos o servicios compartidos. Ver [BRANDING_RESULTS.md](BRANDING_RESULTS.md).
