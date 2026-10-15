@@ -20,4 +20,13 @@
 
 ## Producción
 
-No desplegado. Requiere autorización específica antes de actualizar el VPS.
+Desplegado con autorización del usuario el 14 de octubre de 2026 (horario de México), código `9aa7691`.
+
+- Respaldo privado validado: `/opt/tavixo/backups/pre-sprint12-20261015T004356Z`, con dump, código, entorno e imágenes de reversión `tavixo-api:pre-sprint12` y `tavixo-web:pre-sprint12`.
+- Compilación Docker con Node 24 y comprobaciones de salud de API/web aprobadas; no se ejecutaron migraciones.
+- 60 verificaciones por HTTPS aprobadas, incluyendo reportes diarios/mensuales, conciliación con caja, ranking, tickets/PDF, autenticación y validación de fechas. No se crearon cuentas, pagos ni movimientos de prueba en producción.
+- Revisión visual: $319 cobrados, 2 cuentas, ticket promedio $159.50, efectivo $120, tarjeta $199 y 6 unidades. Ranking: Quesabirria individual 2/$110, Taco chico 2/$58, Consomé con carne — Medio litro 1/$120 y Refresco 600 ml 1/$31.
+- Se compararon todos los registros actuales de catálogo, mesas, sucursales, membresías, cuentas, rondas, eventos, pagos, cancelaciones, cortes, turnos y movimientos: sin cambios.
+- PostgreSQL y los demás contenedores conservaron sus identificadores/fechas de arranque. Configuración Nginx sin cambios. Puertos, TLS, firewall y dependencias de seguridad permanecen pendientes de Avi.
+- Evidencia visual: `../tavixo-sprint12-produccion.png`.
+- Las sesiones SSH y pestañas temporales de revisión se cerraron al terminar.
