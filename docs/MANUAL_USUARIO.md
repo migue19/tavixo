@@ -10,6 +10,8 @@ Usa una cuenta personal por empleado. Al terminar en un equipo compartido, pulsa
 
 Tavixo necesita internet para operar. La instalación como aplicación desde el navegador es opcional: no convierte el sistema en un punto de venta sin conexión. Si aparece un envío pendiente, usa el botón de reintento de ese mismo envío; no abras una segunda cuenta para resolverlo.
 
+El menú se organiza en **Operación**, **Caja y reportes** y **Gestión**, con opciones visibles en varias filas. Para administrar usuarios, abre **Gestión → Equipo**. Las secciones disponibles dependen de tu rol.
+
 ## 2. Qué puede hacer cada persona
 
 | Rol | Trabajo principal | Límites importantes |
@@ -146,7 +148,8 @@ Cerrar un turno no cierra automáticamente las cuentas abiertas. Si se cobra des
 1. Abre **Reportes de ventas** y selecciona la sucursal.
 2. Elige **Desde** y **Hasta**, hasta hoy, con un máximo de 366 días inclusive.
 3. Consulta ventas cobradas, cantidad de cuentas, ticket promedio y desglose efectivo/tarjeta.
-4. Revisa **Ventas por día** y **Productos más vendidos**. Usa **Actualizar reporte** si necesitas datos más recientes.
+4. Revisa la gráfica de **Ventas por día**, la distribución de efectivo y tarjeta y las barras de los cinco productos más vendidos. Los pagos mixtos se reparten entre los dos métodos.
+5. Consulta el día de mayor venta, promedio diario (incluye días sin cobros) y unidades vendidas. Las tablas inferiores conservan los valores exactos. Usa **Actualizar reporte** si necesitas datos más recientes.
 
 La fecha es la del cobro, no la apertura de la cuenta. Se excluyen cuentas sin pago y unidades canceladas. Los pagos mixtos no duplican cuentas. El ticket promedio es venta cobrada dividida entre cuentas cobradas, redondeado a centavos.
 

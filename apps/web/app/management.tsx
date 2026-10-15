@@ -178,36 +178,57 @@ export default function Management({
           </select>
         </label>
       </div>
-      <nav className="tabs" aria-label="Administración">
+      <nav className="workspace-navigation" aria-label="Administración">
         {[
-          ["overview", "Resumen"],
-          ["branches", "Sucursales"],
-          ["menu", "Menú"],
-          ["tables", "Mesas"],
-          ["orders", "Comandas"],
-          ["kitchen", "Cocina"],
+          {
+            title: "Operación",
+            links: [
+              ["menu", "Menú"],
+              ["tables", "Mesas"],
+              ["orders", "Comandas"],
+              ["kitchen", "Cocina"],
+            ],
+          },
           ...(["OWNER", "MANAGER", "CASHIER"].includes(session.user.role)
-            ? [
-                ["cash", "Caja y ventas"],
-                ["shifts", "Turnos de caja"],
-                ["reports", "Reportes de ventas"],
-              ]
+            ? [{
+                title: "Caja y reportes",
+                links: [
+                  ["cash", "Caja y ventas"],
+                  ["shifts", "Turnos de caja"],
+                  ["reports", "Reportes de ventas"],
+                ],
+              }]
             : []),
-          ...(administrative ? [["team", "Equipo"]] : []),
-          ["account", "Mi cuenta"],
-        ].map(([key, label]) => (
-          <button
-            key={key}
-            className={tab === key ? "selected" : ""}
-            aria-current={tab === key ? "page" : undefined}
-            onClick={() => {
-              setTab(key);
-              setError("");
-              setNotice("");
-            }}
-          >
-            {label}
-          </button>
+          {
+            title: "Gestión",
+            links: [
+              ["overview", "Resumen"],
+              ["branches", "Sucursales"],
+              ...(administrative ? [["team", "Equipo"]] : []),
+              ["account", "Mi cuenta"],
+            ],
+          },
+        ].map((group) => (
+          <div className="navigation-group" key={group.title}>
+            <h2>{group.title}</h2>
+            <div className="navigation-links">
+              {group.links.map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={tab === key ? "selected" : ""}
+                  aria-current={tab === key ? "page" : undefined}
+                  onClick={() => {
+                    setTab(key);
+                    setError("");
+                    setNotice("");
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
       {error && (

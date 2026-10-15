@@ -361,3 +361,9 @@ Dependencias fijadas en Next.js **16.4.1**, React/React DOM **19.3.1** y Sharp *
 
 - [Manual de usuario](docs/MANUAL_USUARIO.md): operación por roles, comandas, pagos, tickets, turnos y reportes de la versión actual.
 - [Mejoras futuras](docs/MEJORAS_FUTURAS.md): lista en espera de solicitud y cotización del cliente. No autoriza nuevos desarrollos ni despliegues.
+
+### Navegación y reportes visuales
+
+La navegación muestra todas las opciones en grupos de Operación, Caja y reportes, y Gestión, sin desplazamiento horizontal. Equipo se encuentra en Gestión y conserva sus permisos anteriores.
+
+Reportes de ventas incorpora una gráfica diaria, distribución efectivo/tarjeta (con pagos mixtos repartidos), barras de los cinco productos más vendidos e indicadores de mejor día, promedio diario y unidades vendidas. Las tablas y los cálculos originales de la API se conservan. No requiere migración ni nuevas dependencias.

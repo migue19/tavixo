@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Session } from "./management";
+import ReportVisuals from "./report-visuals";
 type Branch = { id: string; name: string; active: boolean };
 type Report = {
   from: string;
@@ -192,8 +193,9 @@ export default function Reports({
             El efectivo es venta neta después del cambio; fondo inicial, retiros
             y gastos se consultan en Turnos de caja.
           </p>
+          <ReportVisuals report={report} />
           <article className="card">
-            <h3>Ventas por día</h3>
+            <h3>Detalle de ventas por día</h3>
             <div className="cash-table">
               <table>
                 <thead>
