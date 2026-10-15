@@ -55,3 +55,5 @@ Referencias: [desafíos de Let's Encrypt](https://letsencrypt.org/docs/challenge
 ## Estado de la configuración existente
 
 La instalación de este mecanismo no cambia la exposición HTTP/HTTPS del VPS. Una vez validada la renovación DNS real, puede retirarse la dependencia del puerto 80 para este certificado. Otros certificados de este VPS utilizan su propia configuración y deben revisarse antes de cambiar reglas compartidas.
+
+El **15 de octubre de 2026** se retiró el bloque HTTP de Tavixo tras verificar DNS-01. La plantilla Nginx del repositorio ahora escucha sólo 443. El firewall inicial del proveedor, activado manualmente por el propietario, bloquea el 80. Ver [resultado de la limpieza](../../HTTPS_ONLY_RESULTS.md). Los listeners HTTP de otros sitios permanecen bajo la administración de sus propietarios.

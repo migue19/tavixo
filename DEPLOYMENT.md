@@ -1,13 +1,13 @@
-# Despliegue inicial de Tavixo
+# Despliegue de Tavixo e historial de actualizaciones
 
-Fecha: 2026-10-13 18:05 (America/Mexico_City).
+Despliegue inicial: 2026-10-13 18:05 (America/Mexico_City). Estado HTTPS actualizado el 15 de octubre de 2026.
 
 Estado: despliegue completo; acceso público HTTPS verificado en https://app.birriaelcachanilla.com.mx.
 
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `5798e67` (Sprint 6).
+- Código de aplicación actual: `aab0e3f` (Sprint 12 y parche Next.js/React). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -17,7 +17,7 @@ Estado: despliegue completo; acceso público HTTPS verificado en https://app.bir
 - Credenciales en `.env` y `admin-access.txt` con permisos 600; no están en Git.
 - Respaldo inicial privado: `/opt/tavixo/backups/initial-pilot.dump`. No se probó restauración.
 
-## Verificación ejecutada
+## Verificación inicial ejecutada
 
 Las imágenes se construyeron con Node 24 en Ubuntu 24.04. Prueba de contraseñas aprobada dentro del contenedor. Pasaron 18 comprobaciones de ejecución: health directo y vía proxy, HTML y assets PWA, rechazo sin autenticación, login OWNER, atributos de cookie, consulta de restaurante/equipo, rotación de refresh y revocación al cerrar sesión. Resultado en `/opt/tavixo/smoke-results.txt`.
 
@@ -25,13 +25,13 @@ Los 16 contenedores anteriores conservan sus IDs, tiempos de arranque y estado a
 
 ## HTTPS público
 
-URL: https://app.birriaelcachanilla.com.mx. DNS A configurado y firewall del proveedor sincronizado para TCP 80. El dominio principal continúa en su hosting anterior.
+URL: https://app.birriaelcachanilla.com.mx. El grupo de firewall inicial «OFF» fue activado por el propietario, dejando accesibles TCP 22 y 443 y bloqueando el 80. El dominio principal continúa en su hosting anterior.
 
-Certificado Let’s Encrypt válido hasta el 11 de enero de 2027. Vhost propio habilitado y validado con `nginx -t`; HTTP redirige a HTTPS con 301. La ruta webroot ACME responde públicamente. `/opt/tavixo` permite atravesar el directorio (751) para leer los challenges; `.env` y `admin-access.txt` conservan permisos 600.
+Certificado Let’s Encrypt renovado y válido hasta el **13 de enero de 2027**. Renovación automática **DNS-01** mediante Hostinger, con el temporizador existente `snap.certbot.renew.timer` y recarga gradual de Nginx. La clave DNS está fuera de Git/Docker y sólo es accesible para root. Ver [infra/tls/RESULTS.md](infra/tls/RESULTS.md).
 
-Pasaron **13 comprobaciones desde fuera del VPS** con validación TLS activada: página principal, health, manifiesto, service worker, offline e iconos; login del piloto, cookie segura, consulta autenticada del restaurante, refresh, logout y rechazo del JWT revocado. También se probó `/api/health` con resolución DNS normal.
+El bloque de Tavixo escucha únicamente **443** (IPv4 e IPv6). El 15 de octubre de 2026 se retiraron su bloque HTTP, la redirección 301 y la ruta webroot ACME. El bloque HTTPS se conservó idéntico. Otros sitios del Nginx compartido pueden mantener sus propios listeners HTTP; no se alteraron sus configuraciones.
 
-Renovación por webroot en el timer existente `snap.certbot.renew.timer`, con deploy hook `nginx -t && systemctl reload nginx`. El vhost HTTPS final conserva la ruta de challenge para renovaciones. La simulación `certbot renew --cert-name app.birriaelcachanilla.com.mx --dry-run --no-random-sleep-on-renew` terminó correctamente.
+Verificaciones posteriores a la limpieza: `nginx -t` aprobado; recarga sin reinicios de contenedores; portada y `/api/health` responden HTTP 200 con TLS confiable; puerto 80 bloqueado desde Internet. Configuraciones de otros sitios y renovación DNS de Tavixo sin cambios. Respaldo y detalle en [HTTPS_ONLY_RESULTS.md](HTTPS_ONLY_RESULTS.md).
 
 Las credenciales de administrador se entregan por archivo privado al propietario, separado de Git. No se registraron contraseñas ni tokens en los resultados de las pruebas. La instalación de la PWA en un navegador y pruebas de carga quedan fuera de esta verificación.
 
