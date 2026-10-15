@@ -1,3 +1,4 @@
+import { restaurantBranding } from "./branding";
 import {
   BadRequestException,
   ConflictException,
@@ -538,6 +539,7 @@ export class OrdersService {
               ? "Cuenta cerrada · sin pago registrado"
               : "Cuenta pendiente de pago",
           restaurant: order.branch.restaurant.name,
+          branding: restaurantBranding(order.branch.restaurant.slug),
           branch: order.branch.name,
           address: order.branch.address,
           order: {

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import type { Branding } from "./branding";
 import type { Order } from "./orders";
 type Kind = "ACCOUNT" | "PAYMENT";
 type Ticket = {
@@ -7,6 +8,7 @@ type Ticket = {
   title: string;
   notice: string;
   restaurant: string;
+  branding?: Branding | null;
   branch: string;
   address: string;
   order: {
@@ -166,6 +168,7 @@ export default function TicketPanel({
             className="digital-ticket"
             aria-label="Vista previa del ticket"
           >
+            {ticket.branding && <img className="ticket-logo" src={ticket.branding.logo} alt={`Logo de ${ticket.restaurant}`} width={112} height={112} />}
             <h4>{ticket.restaurant}</h4>
             <p className="ticket-center">
               {ticket.branch}
@@ -256,7 +259,7 @@ export default function TicketPanel({
               </div>
             )}
             <small>Referencia de cuenta: {ticket.order.id}</small>
-            <p className="ticket-center">Tavixo · Ticket digital</p>
+            <p className="ticket-center">Tecnología Tavixo · Ticket digital</p>
           </article>
           <div className="actions">
             <button disabled={disabled || busy} onClick={download}>

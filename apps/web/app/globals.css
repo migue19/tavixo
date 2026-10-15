@@ -135,3 +135,33 @@ textarea{display:block;width:100%;font:inherit;font-size:15px;margin-top:9px;pad
 .ranking-track > div { height:100%; background:#286a52; border-radius:6px; }
 @media(max-width:800px) { .report-chart-grid { grid-template-columns:1fr; }.report-highlights { gap:10px; }.report-highlights article { padding:14px; }.report-highlights strong { font-size:22px; } }
 @media(max-width:500px) { .report-highlights { grid-template-columns:1fr; }.report-chart-grid .card { padding:18px; }.report-highlights article { display:grid; grid-template-columns:1fr auto; gap:4px 12px; align-items:center; }.report-highlights strong { margin:0; }.report-highlights small { grid-column:1 / -1; }.daily-sales-chart text { font-size:22px; } }
+
+/* Tenant branding: keep operational state and destructive action colors intact. */
+.restaurant-branded { color: var(--brand-primary); }
+.restaurant-branded > header { background: var(--brand-primary); border: 1px solid var(--brand-accent); border-radius: 18px; padding: 18px 24px; gap: 18px; margin-bottom: 36px; }
+.restaurant-identity { display: flex; align-items: center; gap: 18px; color: var(--brand-surface); text-decoration: none; min-width: 0; }
+.restaurant-identity img { object-fit: contain; flex-shrink: 0; border-radius: 10px; }
+.restaurant-identity strong { display: block; font: bold clamp(18px, 2.5vw, 27px) Georgia, serif; color: var(--brand-accent); }
+.restaurant-identity small { display: block; color: var(--brand-surface); margin-top: 8px; font-size: 12px; }
+.restaurant-branded > header .secondary { color: var(--brand-surface); border-color: var(--brand-accent); flex-shrink: 0; }
+.restaurant-branded button:not(.secondary):not(.danger):not(.navigation-links button) { background: var(--brand-primary); }
+.restaurant-branded .navigation-links button[aria-current="page"] { background: var(--brand-primary); color: var(--brand-surface); border-color: var(--brand-accent); box-shadow: inset 0 -3px var(--brand-accent); }
+.restaurant-branded .navigation-group { border-color: #ddc8a8; }
+.restaurant-branded .navigation-group h2, .restaurant-branded .eyebrow { color: #765027; }
+.restaurant-branded input:focus, .restaurant-branded select:focus, .restaurant-branded textarea:focus { outline-color: var(--brand-accent); }
+.ticket-logo { display: block; margin: 0 auto 16px; object-fit: contain; border-radius: 8px; }
+.restaurant-branded .digital-ticket { border-top: 4px solid var(--brand-accent); }
+@media(max-width:600px) {
+  .restaurant-branded > header { padding: 14px; gap: 12px; }
+  .restaurant-identity { gap: 12px; flex: 1 1 100%; }
+  .restaurant-identity img { width: 72px; height: 72px; }
+  .restaurant-branded > header button { margin-left: 84px; }
+}
+
+.restaurant-branded .navigation-links button:not(.selected) { background: #faf5ec; color: #35291d; border-color: #ddc8a8; }
+.restaurant-branded .navigation-links button:hover { border-color: var(--brand-accent); }
+
+.restaurant-branded .stats article { background: #faf5ec; border-color: #ddc8a8; }
+.restaurant-branded .chart-key, .restaurant-branded .ranking-position { background: var(--brand-surface); color: var(--brand-primary); }
+.restaurant-branded .cash-dot, .restaurant-branded .ranking-track > div { background: var(--brand-primary); }
+.restaurant-branded .card-dot { background: var(--brand-accent); }

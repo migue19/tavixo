@@ -1,3 +1,4 @@
+import { restaurantBranding } from "./branding";
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { randomBytes, randomUUID, createHash } from "node:crypto";
@@ -114,6 +115,7 @@ export class AuthService {
         id: member.restaurantId,
         name: member.restaurant.name,
         slug: member.restaurant.slug,
+        branding: restaurantBranding(member.restaurant.slug),
       },
     };
   }

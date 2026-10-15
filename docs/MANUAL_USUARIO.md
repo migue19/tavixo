@@ -8,6 +8,8 @@ Acceso de Birria El Cachanilla: https://app.birriaelcachanilla.com.mx/. Identifi
 
 Usa una cuenta personal por empleado. Al terminar en un equipo compartido, pulsa **Cerrar sesión**. La pestaña **Mi cuenta** permite cambiar tu contraseña; ese cambio cierra tus sesiones y tendrás que entrar nuevamente.
 
+Al entrar a Birria El Cachanilla verás el logo y los colores del restaurante en el encabezado, la navegación, las gráficas y los tickets digitales. La opción seleccionada se distingue con un fondo oscuro y un borde dorado.
+
 Tavixo necesita internet para operar. La instalación como aplicación desde el navegador es opcional: no convierte el sistema en un punto de venta sin conexión. Si aparece un envío pendiente, usa el botón de reintento de ese mismo envío; no abras una segunda cuenta para resolverlo.
 
 El menú se organiza en **Operación**, **Caja y reportes** y **Gestión**, con opciones visibles en varias filas. Para administrar usuarios, abre **Gestión → Equipo**. Las secciones disponibles dependen de tu rol.

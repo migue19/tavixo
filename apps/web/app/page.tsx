@@ -1,5 +1,5 @@
 "use client";
-import { FormEvent, useEffect, useState } from "react";
+import { CSSProperties, FormEvent, useEffect, useState } from "react";
 import Management, { Session } from "./management";
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
@@ -94,12 +94,19 @@ export default function Home() {
     }
   }
   return (
-    <main>
+    <main className={session?.restaurant.branding ? "restaurant-branded" : undefined}
+      style={session?.restaurant.branding ? {
+        "--brand-primary": session.restaurant.branding.primary,
+        "--brand-accent": session.restaurant.branding.accent,
+        "--brand-surface": session.restaurant.branding.surface,
+      } as CSSProperties : undefined}>
       <header>
-        <a className="brand" href="/">
-          tavixo<span>●</span>
-        </a>
-        <span className="tag">Tu restaurante, en sincronía</span>
+        {session?.restaurant.branding ? (
+          <a className="restaurant-identity" href="/">
+            <img src={session.restaurant.branding.logo} alt={`Logo de ${session.restaurant.name}`} width={88} height={88} />
+            <span><strong>{session.restaurant.name}</strong><small>Tu restaurante, en sincronía</small></span>
+          </a>
+        ) : <><a className="brand" href="/">tavixo<span>●</span></a><span className="tag">Tu restaurante, en sincronía</span></> }
         {session && (
           <button className="secondary" onClick={logout} disabled={busy}>
             Cerrar sesión
@@ -188,7 +195,7 @@ export default function Home() {
           }}
         />
       )}
-      <footer>Tavixo · Restaurant Operating System</footer>
+      <footer>Tecnología Tavixo · Restaurant Operating System</footer>
     </main>
   );
 }

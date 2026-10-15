@@ -1,4 +1,5 @@
 "use client";
+import type { Branding } from "./branding";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import Catalog from "./catalog";
 import Orders from "./orders";
@@ -9,7 +10,7 @@ export type Session = {
   accessToken: string;
   expiresIn: number;
   user: { name: string; email: string; role: string; branchId?: string | null };
-  restaurant: { id: string; name: string; slug: string };
+  restaurant: { id: string; name: string; slug: string; branding?: Branding | null };
 };
 type Branch = { id: string; name: string; address: string; active: boolean };
 type Member = {

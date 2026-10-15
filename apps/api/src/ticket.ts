@@ -1,11 +1,12 @@
+import { Branding } from "./branding";
 import PDFDocument from "pdfkit";
-import { resolve } from "node:path";
+import { resolve as assetPath } from "node:path";
 import { IsEnum } from "class-validator";
-const regular = resolve(
+const regular = assetPath(
   __dirname,
   "../assets/fonts/LiberationSans-Regular.ttf",
 );
-const boldFont = resolve(__dirname, "../assets/fonts/LiberationSans-Bold.ttf");
+const boldFont = assetPath(__dirname, "../assets/fonts/LiberationSans-Bold.ttf");
 export enum TicketKind {
   ACCOUNT = "ACCOUNT",
   PAYMENT = "PAYMENT",
@@ -18,6 +19,7 @@ export type Ticket = {
   title: string;
   notice: string;
   restaurant: string;
+  branding?: Branding | null;
   branch: string;
   address: string;
   order: {
@@ -80,6 +82,13 @@ export function ticketPdf(ticket: Ticket): Promise<Buffer> {
         .text(s, { width: 198.77, lineGap: 3 });
     };
     try {
+      // Select the bundled image by identity, never by a supplied filesystem path.
+      if (ticket.branding?.key === "birria-el-cachanilla") {
+        doc.image(assetPath(__dirname, "../assets/branding/birria-el-cachanilla.jpg"), 77, doc.y, { width: 72 });
+        doc.y += 82;
+        doc.moveTo(14, doc.y).lineTo(212, doc.y).strokeColor("#d4a466").stroke();
+        doc.y += 10;
+      }
       text(ticket.restaurant, 14, true);
       text(ticket.branch, 10, true);
       if (ticket.address) text(ticket.address);
@@ -138,7 +147,7 @@ export function ticketPdf(ticket: Ticket): Promise<Buffer> {
       }
       doc.moveDown();
       text(`Referencia de cuenta: ${ticket.order.id}`, 7);
-      text("Tavixo · Ticket digital", 8);
+      text("Tecnología Tavixo · Ticket digital", 8);
       const pages = doc.bufferedPageRange();
       for (let i = pages.start; i < pages.start + pages.count; i++) {
         doc.switchToPage(i);
