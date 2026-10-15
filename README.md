@@ -348,3 +348,7 @@ La pestaña **Reportes de ventas** permite consultar una sucursal y un período 
 Incluye ventas cobradas, cuentas, ticket promedio (redondeado a centavos), efectivo/tarjeta, pagos mixtos, unidades, días sin ventas y los 50 productos más vendidos por unidades, con desempate por importe. Los totales incluyen todos los registros. Se utiliza la fecha del pago, no la apertura de la cuenta; se excluyen cuentas sin pago y unidades canceladas. Los importes y nombres proceden de las líneas históricas, conservando cambios de precio; un producto renombrado puede aparecer en varios renglones. La pantalla avisa si el detalle histórico de productos no coincide con los cobros.
 
 Los reportes se leen en una transacción consistente, no guardan cortes, no alteran cuentas y no incluyen fondos iniciales/retiros/gastos como ventas. Consultar **Turnos de caja** para esos movimientos. No requiere migración ni nuevas variables de entorno.
+
+### Certificado de producción
+
+Tavixo renueva su certificado mediante DNS-01 de Hostinger desde el 15 de octubre de 2026, sin depender del puerto 80. El temporizador de Certbot y el hook ejecutan la renovación automáticamente. La credencial permanece fuera de la aplicación y del repositorio, sólo accesible para root; debe mantenerse vigente. Consulte [instalación y funcionamiento](infra/tls/README.md) y [resultados verificados](infra/tls/RESULTS.md). La configuración de los otros servicios y las reglas del firewall no se modificaron.

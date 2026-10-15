@@ -14,3 +14,7 @@ admin-access.txt
 backups/
 *.dump
 *.tar
+
+# Python tooling
+__pycache__/
+*.pyc
