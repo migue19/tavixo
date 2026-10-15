@@ -356,3 +356,8 @@ Tavixo renueva su certificado mediante DNS-01 de Hostinger desde el 15 de octubr
 ### Parche de seguridad de octubre de 2026
 
 Dependencias fijadas en Next.js **16.4.1**, React/React DOM **19.3.1** y Sharp **0.35.5** en el lockfile. Los avisos oficiales, las pruebas y la verificación del despliegue se documentan en [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
+
+## Manual y mejoras futuras
+
+- [Manual de usuario](docs/MANUAL_USUARIO.md): operación por roles, comandas, pagos, tickets, turnos y reportes de la versión actual.
+- [Mejoras futuras](docs/MEJORAS_FUTURAS.md): lista en espera de solicitud y cotización del cliente. No autoriza nuevos desarrollos ni despliegues.
