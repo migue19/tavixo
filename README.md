@@ -367,3 +367,7 @@ Dependencias fijadas en Next.js **16.4.1**, React/React DOM **19.3.1** y Sharp *
 La navegación muestra todas las opciones en grupos de Operación, Caja y reportes, y Gestión, sin desplazamiento horizontal. Equipo se encuentra en Gestión y conserva sus permisos anteriores.
 
 Reportes de ventas incorpora una gráfica diaria, distribución efectivo/tarjeta (con pagos mixtos repartidos), barras de los cinco productos más vendidos e indicadores de mejor día, promedio diario y unidades vendidas. Las tablas y los cálculos originales de la API se conservan. No requiere migración ni nuevas dependencias.
+
+### Exportación de reportes a Excel
+
+`GET /api/restaurant/branches/:branchId/reports/sales.xlsx?from=YYYY-MM-DD&to=YYYY-MM-DD` requiere los mismos permisos y filtros que el reporte JSON. Genera un XLSX con tres hojas, importes numéricos, fechas, filtros, encabezados fijos y marca del restaurante. Incluye todos los productos; el JSON conserva su límite de 50. Se consulta una nueva instantánea transaccional al descargar; no se envían reportes ni credenciales a terceros. Sin migraciones. ExcelJS 4.4.0 utiliza UUID 11.1.1 mediante override para incluir la corrección de límites de buffer.

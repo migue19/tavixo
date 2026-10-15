@@ -1,3 +1,4 @@
+import ExcelJS from "exceljs";
 import { before, after, it } from "node:test";
 import assert from "node:assert/strict";
 import "reflect-metadata";
@@ -2997,11 +2998,11 @@ it("reports by Mexico payment day with zero days, excluding unpaid accounts", as
     [0, 8700, 0],
   );
 });
-it("restricts sales reports to authorized tenant and cashier branch", async () => {
+for (const extension of ["", ".xlsx"]) it(`restricts sales reports ${extension} to authorized tenant and cashier branch`, async () => {
   const f = await paymentFixture();
   const day = mexicoDay(),
     query = `?from=${day}&to=${day}`;
-  const path = `/api/restaurant/branches/${f.branch.id}/reports/sales${query}`;
+  const path = `/api/restaurant/branches/${f.branch.id}/reports/sales${extension}${query}`;
   await request(app.getHttpServer()).get(path).expect(401);
   for (const role of ["WAITER", "KITCHEN"])
     await request(app.getHttpServer())
@@ -3014,14 +3015,14 @@ it("restricts sales reports to authorized tenant and cashier branch", async () =
       .set("Authorization", f.staff[role])
       .expect(200);
   await request(app.getHttpServer())
-    .get(`/api/restaurant/branches/${f.other.id}/reports/sales${query}`)
+    .get(`/api/restaurant/branches/${f.other.id}/reports/sales${extension}${query}`)
     .set("Authorization", f.auth)
     .expect(404);
   const other = await db.branch.create({
-    data: { restaurantId: a, name: "Otra sucursal" },
+    data: { restaurantId: a, name: `Otra sucursal ${extension || "json"}` },
   });
   await request(app.getHttpServer())
-    .get(`/api/restaurant/branches/${other.id}/reports/sales${query}`)
+    .get(`/api/restaurant/branches/${other.id}/reports/sales${extension}${query}`)
     .set("Authorization", f.staff.CASHIER)
     .expect(403);
 });
@@ -3097,4 +3098,47 @@ it("limits product ranking without truncating sales totals or using current pric
   assert.equal(res.body.unitsSold, 1540);
   assert.equal(res.body.productSalesCents, total);
   assert.equal(res.body.totalCents, total);
+  const exported = await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.branch.id}/reports/sales.xlsx?from=${day}&to=${day}`)
+    .set("Authorization", f.auth)
+    .buffer(true).parse((response, callback) => {
+      const chunks: Buffer[] = [];
+      response.on("data", c => chunks.push(c));
+      response.on("end", () => callback(null, Buffer.concat(chunks)));
+    }).expect(200);
+  assert.match(exported.headers["content-disposition"], /attachment;.*\.xlsx/);
+  assert.match(exported.headers["cache-control"], /no-store/);
+  const book = new ExcelJS.Workbook();
+  await book.xlsx.load(exported.body);
+  assert.deepEqual(book.worksheets.map(w => w.name), ["Resumen", "Ventas por día", "Productos más vendidos"]);
+  const products = book.getWorksheet("Productos más vendidos")!;
+  assert.equal(products.rowCount, 61);
+  assert.equal(products.getCell("B7").value, 55);
+  assert.equal(products.getCell("C7").value, 55);
+  assert.equal(book.getWorksheet("Resumen")!.getCell("B7").value, total / 100);
+  assert.equal(book.getWorksheet("Ventas por día")!.getCell("E7").value, total / 100);
+});
+
+it("exports zero sales and treats formula-looking product names as text", async () => {
+  const f = await paymentFixture();
+  const day = mexicoDay();
+  const path = `/api/restaurant/branches/${f.branch.id}/reports/sales.xlsx?from=${day}&to=${day}`;
+  const download = async () => {
+    const res = await request(app.getHttpServer()).get(path).set("Authorization", f.auth)
+      .buffer(true).parse((response, callback) => {
+        const chunks: Buffer[] = []; response.on("data", c => chunks.push(c));
+        response.on("end", () => callback(null, Buffer.concat(chunks)));
+      }).expect(200);
+    const book = new ExcelJS.Workbook(); await book.xlsx.load(res.body); return book;
+  };
+  let book = await download();
+  assert.equal(book.getWorksheet("Resumen")!.getCell("B7").value, 0);
+  assert.equal(book.getWorksheet("Ventas por día")!.getCell("E7").value, 0);
+  await request(app.getHttpServer()).get(path.replace(`to=${day}`, "to=bad")).set("Authorization", f.auth).expect(400);
+  await request(app.getHttpServer()).post(f.path).set("Authorization", f.auth).send(f.payment).expect(201);
+  await db.orderItem.update({ where: { id: f.order.items[0].id }, data: { name: '=HYPERLINK("https://example.test","producto")' } });
+  book = await download();
+  const nameCell = book.getWorksheet("Productos más vendidos")!.getCell("A7");
+  assert.equal(nameCell.type, ExcelJS.ValueType.String);
+  assert.equal(nameCell.value, '=HYPERLINK("https://example.test","producto")');
 });

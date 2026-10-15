@@ -165,3 +165,9 @@ textarea{display:block;width:100%;font:inherit;font-size:15px;margin-top:9px;pad
 .restaurant-branded .chart-key, .restaurant-branded .ranking-position { background: var(--brand-surface); color: var(--brand-primary); }
 .restaurant-branded .cash-dot, .restaurant-branded .ranking-track > div { background: var(--brand-primary); }
 .restaurant-branded .card-dot { background: var(--brand-accent); }
+
+.report-download { display:flex; align-items:center; gap:24px; flex-wrap:wrap; margin:24px 0; }
+.report-download > div { flex:1 1 360px; }
+.report-download h3 { margin:0; }
+.report-download button { flex-shrink:0; }
+.report-download small { line-height:1.5; display:block; }

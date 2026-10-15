@@ -178,3 +178,11 @@ Al reportar una incidencia, informa fecha/hora, sucursal, cuenta, acción y mens
 En una demo, abre un turno con $500. Crea una cuenta de $300, prepara y entrega sus rondas. Cobra $100 en tarjeta y recibe $250 en efectivo: el cambio debe ser $50 y la venta neta en efectivo $200. Registra un gasto real de prueba de $50. El esperado del turno será $650. Si cuentas $640, el cierre debe mostrar faltante de $10. Comprueba un pago, una mesa libre, ticket por $300 y reporte con una cuenta cobrada.
 
 Este ejercicio requiere productos de prueba que sumen $300 y no debe hacerse en el restaurante productivo. El cajero debe poder explicar la diferencia entre cobro, efectivo recibido, cambio, turno y corte diario antes de operar solo.
+
+## Descargar reportes en Excel
+
+En **Reportes de ventas**, selecciona la sucursal y las fechas. Cuando cargue el reporte, usa **Descargar Excel** en la sección **Descargar reportes**.
+
+El archivo `.xlsx` contiene **Resumen**, **Ventas por día** y **Productos más vendidos**, con importes numéricos en pesos mexicanos y todos los renglones de productos del período. Puedes ordenar y filtrar el detalle en Excel. Incluye las fechas, sucursal y hora de generación.
+
+La descarga vuelve a consultar los cobros al generar el archivo; si hubo una venta nueva después de cargar la pantalla, puede aparecer en el Excel. Actualiza el reporte para comparar. Sólo incluye cuentas cobradas, sin fondo inicial, retiros ni gastos de caja. Disponible para propietario, gerente y cajero; el cajero conserva el acceso limitado a su sucursal.

@@ -61,7 +61,34 @@ export default function Reports({
   const [report, setReport] = useState<Report | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState("");
   const sequence = useRef(0);
+  async function downloadExcel() {
+    if (!report || loading || !online || exporting) return;
+    const version = sequence.current;
+    setExporting(true);
+    setExportError("");
+    try {
+      const response = await fetch(`/api/restaurant/branches/${branch}/reports/sales.xlsx?${new URLSearchParams({ from: report.from, to: report.to })}`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` }, cache: "no-store",
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(typeof data.message === "string" ? data.message : "No se pudo descargar el Excel");
+      }
+      const blob = await response.blob();
+      if (version !== sequence.current) return;
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `tavixo-ventas-${branch}-${report.from}-${report.to}.xlsx`;
+      document.body.appendChild(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    } catch (e) {
+      if (version === sequence.current) setExportError(e instanceof Error ? e.message : "Revisa tu conexión");
+    } finally { setExporting(false); }
+  }
   useEffect(() => {
     if (!branches.some((b) => b.id === branch))
       setBranch(branches[0]?.id ?? "");
@@ -97,6 +124,7 @@ export default function Reports({
   useEffect(() => {
     setReport(null);
     setError("");
+    setExportError("");
     if (branch && online) void load();
     else setLoading(false);
     return () => {
@@ -169,6 +197,14 @@ export default function Reports({
             })}
             .
           </p>
+          <article className="card report-download">
+            <div><h3>Descargar reportes</h3>
+              <p>Excel con resumen, ventas por día y todos los productos vendidos de {report.branch.name}, del {report.from} al {report.to}.</p>
+              <small>Importes en MXN. Se consultan los cobros al generar el archivo; pueden incluir ventas registradas después de cargar esta pantalla.</small>
+            </div>
+            <button disabled={exporting || loading || !online} onClick={() => void downloadExcel()}>{exporting ? "Preparando Excel…" : "Descargar Excel"}</button>
+            {exportError && <p className="alert" role="alert">{exportError}</p>}
+          </article>
           <div className="stats">
             <article className="card">
               <span>Ventas cobradas</span>

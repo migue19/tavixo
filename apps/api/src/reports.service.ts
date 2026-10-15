@@ -27,7 +27,7 @@ function safe(value: bigint | Prisma.Decimal) {
 @Injectable()
 export class ReportsService {
   constructor(private db: PrismaService) {}
-  sales(member: Membership, branchId: string, from: string, to: string) {
+  sales(member: Membership, branchId: string, from: string, to: string, allProducts = false) {
     const range = salesRange(from, to);
     return this.db.$transaction(
       async (tx) => {
@@ -40,7 +40,7 @@ export class ReportsService {
           throw new ForbiddenException();
         const branch = await tx.branch.findFirst({
           where: { id: branchId, restaurantId: member.restaurantId },
-          select: { id: true, name: true },
+          select: { id: true, name: true, restaurant: { select: { name: true, slug: true } } },
         });
         if (!branch) throw new NotFoundException("Sucursal no encontrada");
         // Prisma timestamps store UTC without a timezone. Bind ISO strings explicitly
@@ -116,7 +116,8 @@ export class ReportsService {
           from,
           to,
           timezone: "America/Mexico_City",
-          branch,
+          branch: { id: branch.id, name: branch.name },
+          restaurant: branch.restaurant,
           periodStart: range.start.toISOString(),
           periodEnd: range.end.toISOString(),
           generatedAt: range.generatedAt.toISOString(),
@@ -133,9 +134,9 @@ export class ReportsService {
             products.reduce((n, r) => n + BigInt(r.total.toString()), 0n),
           ),
           productCount: products.length,
-          productLimit: 50,
+          productLimit: allProducts ? products.length : 50,
           daily,
-          products: products.slice(0, 50).map((r) => ({
+          products: products.slice(0, allProducts ? undefined : 50).map((r) => ({
             productId: r.productId,
             name: r.name,
             quantity: safe(r.quantity),
