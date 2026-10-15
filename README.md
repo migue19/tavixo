@@ -352,3 +352,7 @@ Los reportes se leen en una transacción consistente, no guardan cortes, no alte
 ### Certificado de producción
 
 Tavixo renueva su certificado mediante DNS-01 de Hostinger desde el 15 de octubre de 2026, sin depender del puerto 80. El temporizador de Certbot y el hook ejecutan la renovación automáticamente. La credencial permanece fuera de la aplicación y del repositorio, sólo accesible para root; debe mantenerse vigente. Consulte [instalación y funcionamiento](infra/tls/README.md) y [resultados verificados](infra/tls/RESULTS.md). La configuración de los otros servicios y las reglas del firewall no se modificaron.
+
+### Parche de seguridad de octubre de 2026
+
+Dependencias fijadas en Next.js **16.4.1**, React/React DOM **19.3.1** y Sharp **0.35.5** en el lockfile. Los avisos oficiales, las pruebas y la verificación del despliegue se documentan en [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
