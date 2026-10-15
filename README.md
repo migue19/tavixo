@@ -340,3 +340,11 @@ Lockfile incluido. Las pruebas usan el runner nativo de Node. Se fija `deepmerge
 [PWA en Next.js](https://nextjs.org/docs/app/guides/progressive-web-apps) · [Datasource Prisma 6](https://www.prisma.io/docs/orm/v6/prisma-schema/overview/data-sources)
 
 Ver `TEST_RESULTS.md` para los resultados observados y límites de verificación.
+
+### Sprint 12: reportes de ventas
+
+La pestaña **Reportes de ventas** permite consultar una sucursal y un período de 1 a 366 días inclusive, hasta hoy, en `America/Mexico_City`. Propietario y gerente pueden consultar sus sucursales; cajeros sólo su sucursal asignada. Endpoint privado: `GET /api/restaurant/branches/:branchId/reports/sales?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+
+Incluye ventas cobradas, cuentas, ticket promedio (redondeado a centavos), efectivo/tarjeta, pagos mixtos, unidades, días sin ventas y los 50 productos más vendidos por unidades, con desempate por importe. Los totales incluyen todos los registros. Se utiliza la fecha del pago, no la apertura de la cuenta; se excluyen cuentas sin pago y unidades canceladas. Los importes y nombres proceden de las líneas históricas, conservando cambios de precio; un producto renombrado puede aparecer en varios renglones. La pantalla avisa si el detalle histórico de productos no coincide con los cobros.
+
+Los reportes se leen en una transacción consistente, no guardan cortes, no alteran cuentas y no incluyen fondos iniciales/retiros/gastos como ventas. Consultar **Turnos de caja** para esos movimientos. No requiere migración ni nuevas variables de entorno.

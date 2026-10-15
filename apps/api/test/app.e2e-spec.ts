@@ -29,7 +29,10 @@ let loginCounter = 1;
 const login = (who = email) =>
   request(app.getHttpServer())
     .post("/api/auth/login")
-    .set("X-Forwarded-For", `192.0.2.${loginCounter++}`)
+    .set(
+      "X-Forwarded-For",
+      `198.18.${Math.floor(loginCounter / 250)}.${(loginCounter++ % 250) + 1}`,
+    )
     .set("Origin", origin)
     .send({ email: who, password, restaurantSlug: slug });
 
@@ -2900,4 +2903,198 @@ it("keeps unassigned historical payments outside new shifts and counts daily sal
     where: { id: paid.body.payment.id },
   });
   assert.equal(stored.shiftId, null);
+});
+
+it("reports mixed payments, cancellation net units and immutable product names", async () => {
+  const f = await paymentFixture();
+  await request(app.getHttpServer())
+    .post(`${f.base}/${f.order.id}/items/${f.order.items[0].id}/cancellations`)
+    .set("Authorization", f.auth)
+    .send({
+      requestId: randomUUID(),
+      quantity: 1,
+      reason: "No lo quiere",
+      expectedCancelledQuantity: 0,
+      expectedTotalCents: 8700,
+    })
+    .expect(201);
+  await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send({
+      ...f.payment,
+      method: "MIXED",
+      expectedTotalCents: 5800,
+      cardAmountCents: 2000,
+      receivedCents: 7000,
+      reference: "REPORT",
+    })
+    .expect(201);
+  await db.product.update({
+    where: { id: f.product.id },
+    data: { name: "Nuevo nombre", priceCents: 9999, active: false },
+  });
+  const day = mexicoDay();
+  const res = await request(app.getHttpServer())
+    .get(
+      `/api/restaurant/branches/${f.branch.id}/reports/sales?from=${day}&to=${day}`,
+    )
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(res.headers["cache-control"], "no-store");
+  assert.equal(res.body.totalCents, 5800);
+  assert.equal(res.body.cashCents, 3800);
+  assert.equal(res.body.cardCents, 2000);
+  assert.equal(res.body.paymentCount, 1);
+  assert.equal(res.body.mixedCount, 1);
+  assert.equal(res.body.averageTicketCents, 5800);
+  assert.equal(res.body.unitsSold, 2);
+  assert.equal(res.body.productSalesCents, 5800);
+  assert.deepEqual(res.body.products, [
+    { productId: f.product.id, name: "Taco", quantity: 2, totalCents: 5800 },
+  ]);
+});
+it("reports by Mexico payment day with zero days, excluding unpaid accounts", async () => {
+  const f = await paymentFixture();
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  await db.payment.update({
+    where: { id: paid.body.payment.id },
+    data: { createdAt: new Date("2024-01-02T05:59:59Z") },
+  });
+  await request(app.getHttpServer())
+    .post(f.base)
+    .set("Authorization", f.auth)
+    .send({ ...f.body, requestId: randomUUID() })
+    .expect(201);
+  const res = await request(app.getHttpServer())
+    .get(
+      `/api/restaurant/branches/${f.branch.id}/reports/sales?from=2024-01-01&to=2024-01-03`,
+    )
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.deepEqual(
+    res.body.daily.map((d: { totalCents: number }) => d.totalCents),
+    [8700, 0, 0],
+  );
+  assert.equal(res.body.paymentCount, 1);
+  assert.equal(res.body.unitsSold, 3);
+  await db.payment.update({
+    where: { id: paid.body.payment.id },
+    data: { createdAt: new Date("2024-01-02T06:00:00Z") },
+  });
+  const next = await request(app.getHttpServer())
+    .get(
+      `/api/restaurant/branches/${f.branch.id}/reports/sales?from=2024-01-01&to=2024-01-03`,
+    )
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.deepEqual(
+    next.body.daily.map((d: { totalCents: number }) => d.totalCents),
+    [0, 8700, 0],
+  );
+});
+it("restricts sales reports to authorized tenant and cashier branch", async () => {
+  const f = await paymentFixture();
+  const day = mexicoDay(),
+    query = `?from=${day}&to=${day}`;
+  const path = `/api/restaurant/branches/${f.branch.id}/reports/sales${query}`;
+  await request(app.getHttpServer()).get(path).expect(401);
+  for (const role of ["WAITER", "KITCHEN"])
+    await request(app.getHttpServer())
+      .get(path)
+      .set("Authorization", f.staff[role])
+      .expect(403);
+  for (const role of ["MANAGER", "CASHIER"])
+    await request(app.getHttpServer())
+      .get(path)
+      .set("Authorization", f.staff[role])
+      .expect(200);
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${f.other.id}/reports/sales${query}`)
+    .set("Authorization", f.auth)
+    .expect(404);
+  const other = await db.branch.create({
+    data: { restaurantId: a, name: "Otra sucursal" },
+  });
+  await request(app.getHttpServer())
+    .get(`/api/restaurant/branches/${other.id}/reports/sales${query}`)
+    .set("Authorization", f.staff.CASHIER)
+    .expect(403);
+});
+it("validates report dates and returns an empty zero summary", async () => {
+  const f = await paymentFixture();
+  const path = `/api/restaurant/branches/${f.branch.id}/reports/sales`;
+  for (const query of [
+    "",
+    "?from=2024-02-30&to=2024-03-01",
+    "?from=2024-01-02&to=2024-01-01",
+    "?from=2023-01-01&to=2024-01-02",
+    "?from=2099-01-01&to=2099-01-01",
+    "?from=2024-01-01&to=2024-01-02&tenant=x",
+  ])
+    await request(app.getHttpServer())
+      .get(path + query)
+      .set("Authorization", f.auth)
+      .expect(400);
+  const res = await request(app.getHttpServer())
+    .get(path + "?from=2024-01-01&to=2024-01-01")
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(res.body.totalCents, 0);
+  assert.equal(res.body.averageTicketCents, 0);
+  assert.deepEqual(res.body.products, []);
+});
+
+it("limits product ranking without truncating sales totals or using current prices", async () => {
+  const f = await paymentFixture();
+  const paid = await request(app.getHttpServer())
+    .post(f.path)
+    .set("Authorization", f.auth)
+    .send(f.payment)
+    .expect(201);
+  // Historical snapshots with changed names stay separate even for the same product.
+  await db.orderItem.deleteMany({ where: { orderId: f.order.id } });
+  await db.orderItem.createMany({
+    data: Array.from({ length: 55 }, (_, i) => ({
+      id: randomUUID(),
+      orderId: f.order.id,
+      restaurantId: a,
+      branchId: f.branch.id,
+      productId: f.product.id,
+      name: `Nombre ${String(i).padStart(2, "0")}`,
+      quantity: i + 1,
+      unitPriceCents: 100,
+    })),
+  });
+  const total = ((55 * 56) / 2) * 100;
+  await db.order.update({
+    where: { id: f.order.id },
+    data: { totalCents: total },
+  });
+  await db.payment.update({
+    where: { id: paid.body.payment.id },
+    data: {
+      amountCents: total,
+      cashAmountCents: total,
+      receivedCents: total,
+      changeCents: 0,
+    },
+  });
+  const day = mexicoDay();
+  const res = await request(app.getHttpServer())
+    .get(
+      `/api/restaurant/branches/${f.branch.id}/reports/sales?from=${day}&to=${day}`,
+    )
+    .set("Authorization", f.auth)
+    .expect(200);
+  assert.equal(res.body.products.length, 50);
+  assert.equal(res.body.productCount, 55);
+  assert.equal(res.body.products[0].quantity, 55);
+  assert.equal(res.body.unitsSold, 1540);
+  assert.equal(res.body.productSalesCents, total);
+  assert.equal(res.body.totalCents, total);
 });

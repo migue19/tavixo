@@ -4,6 +4,7 @@ import Catalog from "./catalog";
 import Orders from "./orders";
 import Cash from "./cash";
 import Shifts from "./shifts";
+import Reports from "./reports";
 export type Session = {
   accessToken: string;
   expiresIn: number;
@@ -189,6 +190,7 @@ export default function Management({
             ? [
                 ["cash", "Caja y ventas"],
                 ["shifts", "Turnos de caja"],
+                ["reports", "Reportes de ventas"],
               ]
             : []),
           ...(administrative ? [["team", "Equipo"]] : []),
@@ -674,6 +676,14 @@ export default function Management({
       )}
       {tab === "shifts" && (
         <Shifts
+          key={session.restaurant.id}
+          session={session}
+          branches={branches}
+          online={online}
+        />
+      )}
+      {tab === "reports" && (
+        <Reports
           key={session.restaurant.id}
           session={session}
           branches={branches}

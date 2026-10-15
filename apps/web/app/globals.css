@@ -38,3 +38,5 @@ textarea{display:block;width:100%;font:inherit;font-size:15px;margin-top:9px;pad
 .tabs { overflow-x:auto; }
 .tabs button { flex-shrink:0; }
 .cash-shifts > .card,.cash-shifts > .management-grid { margin-top:20px; }
+
+.sales-reports > .card { margin-top: 20px; }
