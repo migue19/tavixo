@@ -371,3 +371,7 @@ Reportes de ventas incorpora una gráfica diaria, distribución efectivo/tarjeta
 ### Exportación de reportes a Excel
 
 `GET /api/restaurant/branches/:branchId/reports/sales.xlsx?from=YYYY-MM-DD&to=YYYY-MM-DD` requiere los mismos permisos y filtros que el reporte JSON. Genera un XLSX con tres hojas, importes numéricos, fechas, filtros, encabezados fijos y marca del restaurante. Incluye todos los productos; el JSON conserva su límite de 50. Se consulta una nueva instantánea transaccional al descargar; no se envían reportes ni credenciales a terceros. Sin migraciones. ExcelJS 4.4.0 utiliza UUID 11.1.1 mediante override para incluir la corrección de límites de buffer.
+
+### Documentación en Obsidian
+
+Índice en la bóveda Development: [Tavixo](obsidian://open?vault=Development&file=Tavixo%2FTavixo). Para actualizar las copias públicas ejecutar `node scripts/sync-obsidian.mjs`; detalles en [docs/OBSIDIAN.md](docs/OBSIDIAN.md). Las instrucciones para agentes están en [AGENTS.md](AGENTS.md).
