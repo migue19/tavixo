@@ -57,3 +57,11 @@ Referencias: [desafíos de Let's Encrypt](https://letsencrypt.org/docs/challenge
 La instalación de este mecanismo no cambia la exposición HTTP/HTTPS del VPS. Una vez validada la renovación DNS real, puede retirarse la dependencia del puerto 80 para este certificado. Otros certificados de este VPS utilizan su propia configuración y deben revisarse antes de cambiar reglas compartidas.
 
 El **15 de octubre de 2026** se retiró el bloque HTTP de Tavixo tras verificar DNS-01. La plantilla Nginx del repositorio ahora escucha sólo 443. El firewall inicial del proveedor, activado manualmente por el propietario, bloquea el 80. Ver [resultado de la limpieza](../../HTTPS_ONLY_RESULTS.md). Los listeners HTTP de otros sitios permanecen bajo la administración de sus propietarios.
+
+## Acceso principal en nut.com.mx
+
+Desde el 26 de octubre de 2026, Tavixo utiliza `tavixo.nut.com.mx`. Su hook es `hostinger_dns_auth_tavixo_nut.py`, instalado como root en `/etc/tavixo-acme/`, con estado separado `state-tavixo-nut.json`. Gestiona exclusivamente `_acme-challenge.tavixo` en la zona `nut.com.mx`; comparte el bloqueo y la credencial privada existente, cuya utilización para este cambio fue autorizada. No copiar la credencial al repositorio.
+
+El hook anterior `hostinger_dns_auth.py` y su estado se conservan para renovar el certificado del enlace antiguo de Birria, que ahora redirige por HTTPS. No eliminar el A ni la renovación anteriores mientras se necesite esa redirección. Los dos certificados usan DNS-01 y el temporizador existente; no requieren puerto 80. La prueba real de renovación del nuevo certificado quedó aprobada. Ver ../../DOMAIN_CHANGE_RESULTS.md.
+
+Pruebas de alcance y preservación DNS: `python3 -m unittest discover -s infra/tls -p 'test_hostinger_dns_auth*.py'`.

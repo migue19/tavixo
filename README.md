@@ -375,3 +375,7 @@ Reportes de ventas incorpora una gráfica diaria, distribución efectivo/tarjeta
 ### Documentación en Obsidian
 
 Índice en la bóveda Development: [Tavixo](obsidian://open?vault=Development&file=Tavixo%2FTavixo). Para actualizar las copias públicas ejecutar `node scripts/sync-obsidian.mjs`; detalles en [docs/OBSIDIAN.md](docs/OBSIDIAN.md). Las instrucciones para agentes están en [AGENTS.md](AGENTS.md).
+
+### Dirección de producción
+
+Acceso principal: https://tavixo.nut.com.mx/. El acceso anterior de Birria redirige por HTTPS. Se requiere iniciar sesión de nuevo y reinstalar la PWA desde la nueva dirección si se usaba la instalación anterior. Ver [DOMAIN_CHANGE_RESULTS.md](DOMAIN_CHANGE_RESULTS.md).

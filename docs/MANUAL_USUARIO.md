@@ -4,7 +4,7 @@ Versión operativa: Sprint 12. Revisión: 15 de octubre de 2026. Dirigido a prop
 
 ## 1. Empieza aquí
 
-Acceso de Birria El Cachanilla: https://app.birriaelcachanilla.com.mx/. Identificador de restaurante: **birria-el-cachanilla**. Escribe tu correo y tu contraseña asignada y pulsa **Entrar a mi restaurante**. Este manual no contiene credenciales.
+Acceso de Tavixo: https://tavixo.nut.com.mx/. El enlace anterior de Birria redirige a esta dirección. Tras el cambio debes iniciar sesión de nuevo; si instalaste la PWA anterior, instala la aplicación desde la nueva dirección. Identificador de restaurante: **birria-el-cachanilla**. Escribe tu correo y tu contraseña asignada y pulsa **Entrar a mi restaurante**. Este manual no contiene credenciales.
 
 Usa una cuenta personal por empleado. Al terminar en un equipo compartido, pulsa **Cerrar sesión**. La pestaña **Mi cuenta** permite cambiar tu contraseña; ese cambio cierra tus sesiones y tendrás que entrar nuevamente.
 

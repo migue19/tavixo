@@ -2,7 +2,7 @@
 
 Despliegue inicial: 2026-10-13 18:05 (America/Mexico_City). Estado HTTPS actualizado el 15 de octubre de 2026.
 
-Estado: despliegue completo; acceso público HTTPS verificado en https://app.birriaelcachanilla.com.mx.
+Estado: acceso principal en https://tavixo.nut.com.mx desde el 26 de octubre de 2026. El enlace HTTPS anterior de Birria redirige permanentemente.
 
 ## Instalación
 
@@ -65,3 +65,7 @@ Personalización publicada con autorización; logo, paleta de marca y tickets PD
 ## Descarga de reportes Excel
 
 Exportación XLSX publicada con autorización, respaldo previo y actualización exclusiva de API/web. 38 comprobaciones HTTPS y descarga real desde navegador aprobadas. Sin migraciones ni cambios de datos. Ver [EXCEL_REPORTS_RESULTS.md](EXCEL_REPORTS_RESULTS.md).
+
+## Cambio de dirección — 26 de octubre de 2026
+
+Acceso principal `https://tavixo.nut.com.mx`; redirección 308 del dominio anterior conservando ruta y parámetros. Nuevo certificado DNS-01 con renovación simulada correctamente. Sólo API recreada para cambiar WEB_ORIGIN; web, PostgreSQL y servicios ajenos sin reinicios. 41 comprobaciones HTTPS aprobadas. Ver [DOMAIN_CHANGE_RESULTS.md](DOMAIN_CHANGE_RESULTS.md).
