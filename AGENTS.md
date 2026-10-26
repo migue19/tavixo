@@ -3,7 +3,7 @@
 ## Proyecto y fuentes
 - Trabajar desde la raíz de este repositorio, no desde la carpeta vacía `Documents/ChatGPT/Tavixo`. Confirmar `git status` antes de editar y conservar cambios del usuario.
 - Dirección principal: https://tavixo.nut.com.mx/. El enlace anterior de Birria redirige por HTTPS; conservar su DNS y renovación de certificado.
-- Producto: Tavixo, gestión multi-tenant para restaurantes. Piloto: Birria El Cachanilla (`birria-el-cachanilla`). Repositorio: https://github.com/migue19/tavixo.
+- Producto: Tavixo, gestión multi-tenant para restaurantes. Pilotos: Birria El Cachanilla (`birria-el-cachanilla`) y Bill-Cochi-Nada (`bill-cochi-nada`), con cuentas y datos independientes. Repositorio: https://github.com/migue19/tavixo.
 - Consultar README.md, docs/MANUAL_USUARIO.md, docs/MEJORAS_FUTURAS.md y el resultado de despliegue relevante. Los registros históricos no prueban el estado actual del VPS.
 - Comunicarse en español, con lenguaje claro. Completar implementación y validación antes de solicitar permiso para publicarla.
 

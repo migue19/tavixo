@@ -379,3 +379,7 @@ Reportes de ventas incorpora una gráfica diaria, distribución efectivo/tarjeta
 ### Dirección de producción
 
 Acceso principal: https://tavixo.nut.com.mx/. El acceso anterior de Birria redirige por HTTPS. Se requiere iniciar sesión de nuevo y reinstalar la PWA desde la nueva dirección si se usaba la instalación anterior. Ver [DOMAIN_CHANGE_RESULTS.md](DOMAIN_CHANGE_RESULTS.md).
+
+### Segundo piloto
+
+Bill-Cochi-Nada (`bill-cochi-nada`) está registrado con una cuenta propietaria independiente, 5 categorías, 30 productos y 3 mesas de 4 lugares. Ver [PILOT_ONBOARDING_RESULTS.md](PILOT_ONBOARDING_RESULTS.md) para alcance y comprobaciones. Las credenciales se entregan por archivo privado fuera de Git.
