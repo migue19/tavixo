@@ -1,6 +1,6 @@
 # Integración de identidad Tavixo — 27 de octubre de 2026
 
-Estado: dirección aprobada, implementación local validada y pendiente de autorización de publicación en VPS.
+Estado: publicado con autorización el 27 de octubre de 2026 en https://tavixo.nut.com.mx/. Versión de código `57cf3a4`.
 
 ## Cambios
 
@@ -24,4 +24,15 @@ Registros privados: `work/platform-brand-verification.log` y `work/platform-bran
 
 Pendiente revisión visual interactiva del login/panel en escritorio y móvil, instalación real de iconos y transición del service worker en un navegador existente: no hay herramienta de control de navegador disponible en esta sesión. Las verificaciones HTTP y geométricas no se presentan como capturas o pruebas de dispositivo.
 
-No se tocó el VPS. Publicar requiere respaldo previo, imágenes de reversión y actualización exclusiva de API/web de Tavixo, sin migraciones, cambios de infraestructura ni de identidades guardadas. La autorización de la guía aprobó la dirección visual; aún no se ha solicitado/aprobado este despliegue concreto.
+## Despliegue autorizado
+
+- Respaldo `/opt/tavixo/backups/pre-platform-brand-20261027T232238Z`: dump validado por índice; sin ensayo de restauración.
+- Reversión disponible en `tavixo-api:rollback-20261027T232238Z` y `tavixo-web:rollback-20261027T232238Z`.
+- Construcción previa y actualización exclusiva de API/web; ambos saludables. Sin migración ni seed.
+- IDs y tiempos de inicio de PostgreSQL y todos los contenedores protegidos idénticos. `.env`, hashes Nginx y renovación TLS idénticos. Sin acciones sobre DNS, firewall ni certificados.
+- Recuentos y huellas de todas las tablas públicas, excepto sesiones temporales `RefreshSession`, idénticos antes/después.
+- **42 comprobaciones HTTPS de pilotos**: login, refresh, permisos/aislamiento, identidad y onboarding conservados, productos/mesas/cuentas, Excel y PDF, redirección histórica.
+- **38 comprobaciones HTTPS de marca**: logo en HTML, metadatos, manifest, coincidencia exacta de 10 archivos públicos con los activos aprobados, texto/colores/fuente servidos, exclusión de API de la caché, carga por arrastre conservada e icono maskable dentro de zona segura.
+- Verificación directa de API publicada: paleta genérica nueva y valores curados de ambos pilotos conservados, sin consulta ni escritura de base de datos.
+
+Registros privados: `work/platform-brand-before.log`, `work/platform-brand-after.log` y `work/platform-brand-live-results.json`. La revisión interactiva de navegador/dispositivo descrita arriba sigue pendiente; estos resultados corresponden a HTTPS, sesión, datos y geometría de activos.

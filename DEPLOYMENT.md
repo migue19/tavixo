@@ -83,3 +83,8 @@ Publicada con autorización la versión `43c3c36`: optimización adaptativa de l
 ## Arrastrar y soltar archivos — 27 de octubre de 2026
 
 Publicada con autorización la versión `a758288`. La carga de logo permite arrastrar un archivo o seleccionarlo con botón; conserva validaciones, vista previa y guardado explícito. Respaldo validado e imagen de reversión; sólo web reconstruida/recreada, sin migración. 42 comprobaciones HTTPS y 10 de recursos públicos aprobadas. API, PostgreSQL, demás contenedores, datos, Nginx y renovación TLS conservados. Prueba interactiva del gesto y vista escritorio/móvil pendiente. Ver [FILE_UPLOAD_DROP_RESULTS.md](FILE_UPLOAD_DROP_RESULTS.md).
+
+
+## Identidad de plataforma Tavixo — 27 de octubre de 2026
+
+Publicada con autorización la versión `57cf3a4`: logo aprobado, acceso carbón/crema/terracota, Manrope local, iconos navegador/Apple/PWA, caché de interfaz y paleta genérica coherente con la guía. Personalización de ambos pilotos conservada. Respaldo validado e imágenes de reversión; sólo API/web reconstruidas y recreadas, sin migración ni seed. 42 comprobaciones HTTPS de pilotos, 38 de marca y revisión de valores genéricos en API publicada aprobadas. PostgreSQL, otros contenedores, datos, `.env`, Nginx y renovación TLS conservados. Pendiente revisión interactiva en dispositivos. Ver [PLATFORM_BRAND_RESULTS.md](PLATFORM_BRAND_RESULTS.md).

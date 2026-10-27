@@ -1,6 +1,6 @@
 # Identidad Tavixo — dirección aprobada v1
 
-Dirección aprobada por el usuario el 27 de octubre de 2026. Integración en producto implementada localmente y validada, pendiente de autorización de publicación. Los restaurantes conservan su propia identidad.
+Dirección aprobada por el usuario el 27 de octubre de 2026. Integración publicada con autorización y verificada por HTTPS el mismo día. Los restaurantes conservan su propia identidad.
 
 ## Dirección recomendada
 
@@ -27,13 +27,13 @@ Se verificó el render de la lámina, logo, retícula y muestras de tamaños. Lo
 
 Los contrastes de texto propuestos se calcularon con luminancia sRGB: barro/blanco 6.17:1, carbón/crema 14.85:1 y piedra/crema 5.19:1. Son comprobaciones de la paleta; no una auditoría del producto.
 
-Una aplicación posterior al login, PWA o materiales debe partir de la dirección elegida y probar tamaños, máscaras de iconos y contraste en las pantallas reales. Los pilotos conservan su identidad configurable. La publicación requerirá autorización aparte.
+La identidad está publicada en acceso, tipografía, valores base e iconos PWA. Los pilotos conservan su identidad configurable. La instalación real y la revisión interactiva en dispositivos siguen pendientes; futuras aplicaciones requieren sus propias verificaciones.
 
 
-## Integración local aprobada
+## Integración publicada
 
 Logo en el acceso, portada carbón/crema con acciones terracota, fuente Manrope servida localmente, iconos de navegador/iPhone/PWA, caché de recursos de interfaz actualizada y página sin conexión coherente con la marca. Los valores genéricos de nuevos restaurantes y Excel sin identidad propia adoptan la paleta Tavixo; las configuraciones guardadas y las marcas de ambos pilotos conservan prioridad.
 
 Los maestros se copian y exportan a la app con `node scripts/sync-platform-brand.mjs`. El icono para recortes tiene fondo completo y símbolo dentro del círculo central de diámetro 80%; el de iPhone es opaco. La actualización de un icono ya instalado depende también del sistema operativo; la comprobación geométrica no sustituye pruebas de instalación en dispositivos.
 
-Ver [PLATFORM_BRAND_RESULTS.md](../PLATFORM_BRAND_RESULTS.md) para resultados y límites. Esta integración aún no está publicada.
+Ver [PLATFORM_BRAND_RESULTS.md](../PLATFORM_BRAND_RESULTS.md) para resultados y límites. Publicada con código `57cf3a4`: 42 comprobaciones HTTPS de pilotos y 38 de marca aprobadas.

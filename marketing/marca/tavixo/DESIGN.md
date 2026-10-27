@@ -1,6 +1,6 @@
 # Tavixo — Guía de identidad y diseño
 
-Versión 1 · 27 de octubre de 2026 · Propuesta para revisión. La aplicación publicada todavía conserva su identidad anterior.
+Versión 1 · 27 de octubre de 2026 · Dirección aprobada e integrada en la aplicación con autorización. Ver `docs/IDENTIDAD_TAVIXO.md` en el repositorio para estado y verificaciones.
 
 **Tu restaurante, en sincronía.**
 
@@ -139,7 +139,7 @@ Modo oscuro institucional: carbón de fondo, crema para texto, maíz para detall
 - En un ticket, el restaurante es protagonista. Si se incorpora una firma de plataforma, debe ser secundaria: «Gestionado con Tavixo».
 - En una demo pública se usa un negocio ficticio y cifras de ejemplo; no se reutilizan ventas ni datos privados de los pilotos.
 
-Aplicar esta guía al producto requerirá una actualización aparte, revisando contraste y estados en cada pantalla. Esta entrega sólo contiene activos y documentación de propuesta.
+La identidad ya se integró al acceso, tipografía, valores base e iconos de la plataforma. Esta entrega contiene sus activos y documentación. Las futuras aplicaciones requieren revisar contraste y estados en las pantallas reales.
 
 ## 10. Voz y mensajes
 
@@ -172,4 +172,4 @@ No estirar, inclinar, girar el símbolo ni cambiar sus proporciones respecto a l
 
 El directorio `marketing/marca/tavixo/` contiene la guía fuente, SVG maestros, fuente/licencia, tokens, manifiesto y vista HTML sin dependencias de red. `outputs/marca-tavixo/` contiene las exportaciones PNG y la copia de lectura de esta guía. El ZIP conserva ambas rutas para que los enlaces relativos funcionen después de extraerlo.
 
-La propuesta está lista para revisión visual. Todavía no se aplicó a la app ni se cambió ningún restaurante. Después de elegir dirección se puede ajustar el símbolo y preparar una aplicación concreta en login, icono y materiales comerciales; la publicación se autoriza por separado.
+La dirección fue aprobada y se publicó el 27 de octubre de 2026 en la plataforma, con respaldo y verificaciones HTTPS. Las configuraciones de restaurantes se conservaron. La revisión visual interactiva en navegador y la instalación en dispositivos siguen pendientes. Los mockups de esta guía son conceptuales, no capturas de la app.

@@ -36,7 +36,7 @@ const construction=svg(640,520,rect(0,0,640,520,C.cream,0)+text('Construcción �
 write('construction.svg',construction);
 let b=rect(0,0,1440,3620,C.cream,0);
 b+=rect(0,0,1440,580,C.ink,0);
-b+=text('IDENTIDAD DE MARCA / PROPUESTA 01',80,60,15,C.maize,700)+text('27 OCT 2026',1200,60,15,C.cream,600);
+b+=text('IDENTIDAD DE MARCA / VERSIÓN 01',80,60,15,C.maize,700)+text('27 OCT 2026',1200,60,15,C.cream,600);
 b+=`<g transform="translate(80 100) scale(1.25)">${logo(C.cream,C.cream,C.maize)}</g>`;
 b+=text('Tu restaurante,',80,345,88,C.cream,800)+text('en sincronía.',80,445,88,C.cream,800);
 b+=text('Una operación conectada. Una marca con calidez.',84,520,23,'#D3C6BA',500);
@@ -73,7 +73,7 @@ b+=text('L',145,3277,13,C.muted,600)+text('M',232,3277,13,C.muted,600)+text('M',
 b+=text('La marca del restaurante, primero.',936,2900,25,C.ink,800)+lines('Dentro de cada cuenta se conserva el logo y la paleta del negocio. Tavixo identifica la plataforma; no sustituye la personalidad del restaurante.',936,2948,420,21,C.muted,500,33)+lines('El verde sigue disponible como estado de éxito. Terracota identifica acciones, no cancelaciones ni alertas.',936,3105,420,20,C.muted,500,31);
 // Closing applications
 b+=rect(80,3342,1280,215,C.ink,22)+`<g transform="translate(113 3372) scale(.58)">${logo(C.cream,C.cream,C.maize)}</g>`+text('Menos vueltas.',113,3480,34,C.cream,800)+text('Más control en cada turno.',113,3526,34,C.cream,800)+text('Redes · sitio comercial · demos',850,3406,18,C.maize,700)+lines('En la operación diaria, la información conserva el protagonismo. En comunicación, la marca puede hablar más fuerte.',850,3450,440,20,C.cream,500,31);
-b+=text('PROPUESTA V1 · AÚN NO APLICADA A LA WEB · SVG EDITABLES Y FUENTE INCLUIDOS',80,3600,13,C.muted,700);
+b+=text('IDENTIDAD V1 · DIRECCIÓN APROBADA · SVG EDITABLES Y FUENTE INCLUIDOS',80,3600,13,C.muted,700);
 write('brand-board.svg',svg(1440,3620,b,'Tavixo · guía visual de identidad: terracota, carbón y crema'));
 await sharp(path.join(root,'assets/brand-board.svg')).png().toFile(path.join(out,'Tavixo-identidad-v1.png'));
 for(const name of ['logo-color','logo-reverse','logo-white','logo-mono','icon','construction']){
@@ -84,8 +84,8 @@ const smallFavicon=rect(0,0,32,32,C.barro,7)+`<path d="m9 9 14 14M23 9 9 23" str
 const contact=svg(1200,240,rect(0,0,1200,240,C.cream,0)+[16,24,32,48,64].map((n,i)=>`<g transform="translate(${40+i*140} 80) scale(${n/(i===0?32:64)})">${i===0?smallFavicon:symbol()}</g>`+text(i===0?'16 px · favicon':`${n} px`,40+i*140,190,i===0?13:16,C.muted)).join('')+`<g transform="translate(790 70) scale(.8)">${logo()}</g>`,'Prueba de tamaños de logo Tavixo');
 await sharp(Buffer.from(contact)).png().toFile(path.join(out,'Prueba-tamanos.png'));
 fs.copyFileSync(path.join(root,'assets/construction.svg'),path.join(out,'Construccion-logo.svg'));
-fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({name:'Tavixo',version:'1.0-proposal',date:'2026-10-27',status:'Propuesta para revisión; no publicada en la app',colors:C,typeface:'Manrope 200–800',fontLicense:'fonts/OFL.txt',fontSource:'https://github.com/google/fonts/tree/main/ofl/manrope',logo:'assets/logo-color.svg',icon:'assets/icon.svg',generator:'scripts/generate-tavixo-brand.mjs'},null,2));
-const cover=svg(1200,630,rect(0,0,1200,630,C.cream,0)+rect(0,0,1200,425,C.ink,0)+text('TAVIXO / PROPUESTA DE IDENTIDAD 01',60,48,14,C.maize,700)+`<g transform="translate(60 92) scale(1.4)">${logo(C.cream,C.cream,C.maize)}</g>`+text('Tu restaurante,',60,302,67,C.cream,800)+text('en sincronía.',60,379,67,C.cream,800)+`<g transform="translate(888 154) scale(3.3)">${symbol('#B75A40',C.maize)}</g>`+text('TERRACOTA · CARBÓN · CREMA',60,477,16,C.barro,800)+text('Una operación conectada. Una marca con calidez.',60,518,23,C.ink,600)+[C.barro,C.ink,C.cream,C.maize].map((c,i)=>rect(60+i*66,550,50,28,c,8,C.line)).join('')+text('Logo vectorial · tipografía · construcción · aplicaciones',375,574,16,C.muted,500),'Tavixo · propuesta de logo y paleta cálida');
+fs.writeFileSync(path.join(root,'manifest.json'),JSON.stringify({name:'Tavixo',version:'1.0',date:'2026-10-27',status:'Dirección aprobada y publicada en Tavixo el 27 de octubre de 2026',colors:C,typeface:'Manrope 200–800',fontLicense:'fonts/OFL.txt',fontSource:'https://github.com/google/fonts/tree/main/ofl/manrope',logo:'assets/logo-color.svg',icon:'assets/icon.svg',generator:'scripts/generate-tavixo-brand.mjs'},null,2));
+const cover=svg(1200,630,rect(0,0,1200,630,C.cream,0)+rect(0,0,1200,425,C.ink,0)+text('TAVIXO / IDENTIDAD DE MARCA 01',60,48,14,C.maize,700)+`<g transform="translate(60 92) scale(1.4)">${logo(C.cream,C.cream,C.maize)}</g>`+text('Tu restaurante,',60,302,67,C.cream,800)+text('en sincronía.',60,379,67,C.cream,800)+`<g transform="translate(888 154) scale(3.3)">${symbol('#B75A40',C.maize)}</g>`+text('TERRACOTA · CARBÓN · CREMA',60,477,16,C.barro,800)+text('Una operación conectada. Una marca con calidez.',60,518,23,C.ink,600)+[C.barro,C.ink,C.cream,C.maize].map((c,i)=>rect(60+i*66,550,50,28,c,8,C.line)).join('')+text('Logo vectorial · tipografía · construcción · aplicaciones',375,574,16,C.muted,500),'Tavixo · propuesta de logo y paleta cálida');
 await sharp(Buffer.from(cover)).png().toFile(path.join(out,'Presentacion-logo-Tavixo.png'));
 for(const size of [16,32])await sharp(path.join(root,'assets/favicon.svg')).resize(size,size).png().toFile(path.join(out,`favicon-${size}.png`));
 for(const size of [192,512])await sharp(path.join(root,'assets/icon.svg')).resize(size,size).png().toFile(path.join(out,`icon-${size}.png`));

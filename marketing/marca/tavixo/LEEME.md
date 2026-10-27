@@ -1,6 +1,6 @@
 # Paquete de marca Tavixo v1
 
-Propuesta visual para revisión. No modifica la aplicación publicada.
+Identidad aprobada y publicada en Tavixo el 27 de octubre de 2026. Este paquete es la entrega de activos, no una aplicación; los mockups son conceptuales.
 
 1. Abre `preview/index.html` en un navegador; funciona sin conexión.
 2. Lee `DESIGN.md` para las reglas completas.

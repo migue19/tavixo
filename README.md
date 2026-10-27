@@ -390,4 +390,4 @@ Disponible en producción desde el 26 de octubre de 2026: configuración por res
 
 ## Identidad Tavixo
 
-Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/crema, tipografía, tokens y aplicaciones. Dirección visual aprobada; integración en acceso, fuente, PWA y paleta genérica validada localmente, pendiente de publicación. Las identidades de los pilotos se conservan. Ver [docs/IDENTIDAD_TAVIXO.md](docs/IDENTIDAD_TAVIXO.md).
+Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/crema, tipografía, tokens y aplicaciones. Dirección visual aprobada; integración en acceso, fuente, PWA y paleta genérica publicada el 27 de octubre de 2026. Las identidades de los pilotos se conservan. Ver [docs/IDENTIDAD_TAVIXO.md](docs/IDENTIDAD_TAVIXO.md).

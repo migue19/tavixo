@@ -1,6 +1,6 @@
 # Guía de marca Tavixo v1 — 27 de octubre de 2026
 
-Estado: propuesta de diseño completa para revisión, sin aplicación al producto ni despliegue.
+Estado: guía v1 aprobada. La integración de plataforma se publicó posteriormente el mismo día; ver PLATFORM_BRAND_RESULTS.md. Las verificaciones de esta sección corresponden a la entrega de diseño.
 
 ## Entrega
 
@@ -20,3 +20,6 @@ La recomendación es terracota/carbón/crema, comparada visualmente con verde y 
 - La vista HTML está preparada para escritorio/móvil, pero la interacción y representación real en navegador siguen pendientes. La vista del archivo solicitada a Codex quedó en cola; no se presenta como una revisión de navegador.
 
 No se modificaron código del producto, configuración de restaurantes ni servicios del VPS. No se repitieron compilación API/web ni pruebas de base de datos por ser una entrega de marca y documentación. Los cambios al sincronizador de Obsidian añaden únicamente `docs/IDENTIDAD_TAVIXO.md` a la lista explícita de documentación pública.
+
+
+Tras publicar la plataforma se actualizaron los textos de estado de guía, lámina y ZIP, sin alterar la geometría ni los colores aprobados. El paquete no es una captura ni una prueba interactiva del producto.
