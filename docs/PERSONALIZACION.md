@@ -36,3 +36,10 @@ Migración `20261026000000_restaurant_branding`: agrega `Restaurant.branding` JS
 `apps/api/src/branding.ts` conserva valores sugeridos del piloto inicial y de Bill-Cochi-Nada como compatibilidad; cualquier restaurante puede guardar su propia configuración sin modificar código. Los logos sugeridos permanecen en `apps/web/public/branding/` y `apps/api/assets/branding/`; mantener las dos copias iguales al reemplazarlos.
 
 La API depende explícitamente de Sharp 0.35.5 (ya utilizado por Next). Se fijaron Multer 2.5.0 y body-parser 2.4.0 para incorporar sus correcciones de seguridad en la carga y lectura de formularios.
+
+
+## Arrastrar y soltar — pendiente de publicación
+
+La única entrada de archivos actual, **Subir logo**, utiliza el componente compartido `apps/web/app/components/file-upload.tsx`. Permite soltar un archivo o seleccionarlo con un botón accesible por teclado y en móvil. Resalta la zona durante el arrastre y muestra nombre, peso y estado pendiente de guardar. Ambos caminos aplican las mismas validaciones de tipo y peso; el servidor sigue validando dimensiones y contenido. Rechaza selecciones múltiples y bloquea la carga mientras se guarda o no hay conexión. No cambia la identidad hasta guardar.
+
+Las próximas cargas de archivos deben reutilizar este componente con sus propios formatos y límites.

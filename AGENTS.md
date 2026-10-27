@@ -13,6 +13,7 @@
 - Dinero en centavos enteros; reportes por America/Mexico_City. Preservar precios/nombres históricos, auditoría y reconciliación efectivo/tarjeta.
 - Conservar transacciones, bloqueo compartido, revisiones esperadas e idempotencia de cobros, rondas, cancelaciones y caja. Cubrir concurrencia si se modifica ese flujo.
 - JWT de acceso y refresh rotatorio en cookie segura. No exponer tokens ni secretos en UI, logs, pruebas, documentación ni Git.
+- Cargas de archivos: reutilizar `apps/web/app/components/file-upload.tsx` para ofrecer arrastrar y soltar y selección con botón/teclado, manteniendo formatos, límites y validación del servidor.
 - PWA requiere conexión para operar. Tarjetas se cobran en terminal externa; Tavixo registra el resultado. Tickets operativos no son CFDI. No prometer offline, integración bancaria o funciones pendientes.
 - Marca por restaurante: apps/api/src/branding.ts. Mantener las dos copias del logo local para web/PDF; conservar colores de estados operativos y contraste accesible.
 

@@ -2,9 +2,9 @@
 import { CSSProperties, FormEvent, useEffect, useRef, useState } from "react";
 import type { Branding } from "./branding";
 import type { Session } from "./management";
+import FileUpload from "./components/file-upload";
 type Settings = { branding: Branding; defaults: Branding; setupNeeded: boolean };
 export default function BrandSettings({ session, online, onSaved }: { session: Session; online: boolean; onSaved: (branding: Branding) => void }) {
-  const fileInput = useRef<HTMLInputElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const mounted = useRef(true);
   const savedCallback = useRef(onSaved);
@@ -40,7 +40,7 @@ export default function BrandSettings({ session, online, onSaved }: { session: S
       const data = await response.json();
       if (!mounted.current) return;
       if (!response.ok) throw new Error(typeof data.message === "string" ? data.message : "Revisa el logo y los colores seleccionados");
-      setValue(data); setColors(data.branding); setFile(null); if (fileInput.current) fileInput.current.value = ""; setRemove(false); savedCallback.current(data.branding);
+      setValue(data); setColors(data.branding); setFile(null); setRemove(false); savedCallback.current(data.branding);
       setNotice("Identidad guardada. Ya se aplica al panel y a los nuevos tickets y reportes.");
     } catch (e) { if (mounted.current) setError(e instanceof Error ? e.message : "No se pudo guardar la identidad"); }
     finally { if (mounted.current) setBusy(false); }
@@ -55,16 +55,12 @@ export default function BrandSettings({ session, online, onSaved }: { session: S
     {value && <div className="brand-settings-grid">
       <form className="card" onSubmit={save}>
         <h3>Logo y colores</h3>
-        <label>Subir logo
-          <input ref={fileInput} type="file" accept="image/png,image/jpeg" disabled={busy || !online} onChange={event => {
-            const next = event.target.files?.[0]; if (!next) return;
-            setError(""); setNotice("");
-            if (!["image/png","image/jpeg"].includes(next.type) || next.size > 512 * 1024) { setFile(null); setError("Elige un PNG o JPG de hasta 512 KB"); event.target.value = ""; return; }
-            setFile(next); setRemove(false);
-          }} />
-          <small>PNG o JPG, máximo 512 KB, entre 128 y 2048 px por lado. Recomendado: cuadrado; PNG transparente si lo tienes. No se aceptan SVG ni GIF; el logo se guarda como imagen estática.</small>
-        </label>
-        <div className="actions"><button type="button" className="secondary" disabled={busy || !online} onClick={() => { setFile(null); if (fileInput.current) fileInput.current.value = ""; setRemove(true); }}>Quitar logo</button></div>
+        <FileUpload label="Subir logo" acceptedTypes={["image/png", "image/jpeg"]} maxBytes={512 * 1024}
+          invalidMessage="Elige un PNG o JPG de hasta 512 KB" file={file} disabled={busy || !online}
+          description="PNG o JPG, máximo 512 KB, entre 128 y 2048 px por lado. Recomendado: cuadrado; PNG transparente si lo tienes. No se aceptan SVG ni GIF; el logo se guarda como imagen estática."
+          onFileChange={next => { setFile(next); setNotice(""); if (next) setRemove(false); }}
+          onError={message => { setError(message); setNotice(""); }} />
+        <div className="actions"><button type="button" className="secondary" disabled={busy || !online} onClick={() => { setFile(null); setRemove(true); }}>Quitar logo</button></div>
         {([["primary","Color principal"],["accent","Color de acento"],["surface","Fondo claro"]] as const).map(([key,label]) => <label key={key}>{label}<div className="brand-color-input"><input aria-label={label} type="color" value={colors[key]} disabled={busy || !online} onChange={e => setColors({...colors,[key]:e.target.value})} /><span>{colors[key].toUpperCase()}</span></div></label>)}
         <p><small>Usa un principal oscuro y un fondo claro. Validamos el contraste al guardar; los estados de cocina, pagos y alertas conservan sus colores.</small></p>
         <button className="secondary" type="button" disabled={busy || !online} onClick={() => setColors(value.defaults)}>Restablecer colores sugeridos</button>
