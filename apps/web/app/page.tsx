@@ -1,6 +1,7 @@
 "use client";
 import { CSSProperties, FormEvent, useEffect, useState } from "react";
 import Management, { Session } from "./management";
+import BrandStory from "./components/brand-story";
 export default function Home() {
   const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
@@ -144,6 +145,7 @@ export default function Home() {
               <br />
               <strong>Todo tu equipo, en un mismo lugar.</strong>
             </div>
+            <a className="brand-story-link" href="#por-que-tavixo">Conoce por qué nos llamamos Tavixo ↓</a>
             <img className="login-mark" src="/branding/tavixo-icon.svg" alt="" aria-hidden="true" width={72} height={72} />
           </div>
           <form onSubmit={login} className="card">
@@ -199,6 +201,7 @@ export default function Home() {
           }}
         />
       )}
+      {ready && !session && <BrandStory />}
       <footer>Tecnología Tavixo · Restaurant Operating System</footer>
     </main>
   );

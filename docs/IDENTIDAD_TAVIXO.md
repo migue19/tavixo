@@ -49,3 +49,8 @@ Logo en el acceso, portada carbón/crema con acciones terracota, fuente Manrope 
 Los maestros se copian y exportan a la app con `node scripts/sync-platform-brand.mjs`. El icono para recortes tiene fondo completo y símbolo dentro del círculo central de diámetro 80%; el de iPhone es opaco. La actualización de un icono ya instalado depende también del sistema operativo; la comprobación geométrica no sustituye pruebas de instalación en dispositivos.
 
 Ver [PLATFORM_BRAND_RESULTS.md](../PLATFORM_BRAND_RESULTS.md) para resultados y límites. Publicada con código `57cf3a4`: 42 comprobaciones HTTPS de pilotos y 38 de marca aprobadas.
+
+
+## Nombre y propósito en la página de acceso — pendiente de publicación
+
+La explicación del nombre y el objetivo también está implementada en la web, debajo del formulario de acceso. La portada incluye un enlace a **¿Por qué Tavixo?**. Explica el nombre como marca creada y la X como encuentro de mesas/comandas, cocina, caja y gestión; destaca el objetivo y mantiene el texto alineado con esta guía. Se muestra sólo sin sesión, después de resolver la sesión inicial, para conservar el espacio operativo de los restaurantes. Compilación y tipos web aprobados; publicación y revisión interactiva pendientes. Ver [BRAND_STORY_PAGE_RESULTS.md](../BRAND_STORY_PAGE_RESULTS.md).
