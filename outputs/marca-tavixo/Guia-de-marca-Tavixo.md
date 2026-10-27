@@ -6,7 +6,35 @@ Versión 1 · 27 de octubre de 2026 · Dirección aprobada e integrada en la apl
 
 Tavixo ayuda a coordinar mesas, comandas, cocina, cobros y revisión del negocio. Su identidad debe transmitir orden y cercanía a quienes trabajan durante un turno completo, y funcionar tanto para una birriería como para una cafetería o una cocina con varias sucursales.
 
-## 1. Dirección de marca y elección de color
+## 1. Por qué nos llamamos Tavixo y nuestro objetivo
+
+### Por qué Tavixo
+
+**Tavixo es un nombre de marca creado para nuestra plataforma de restaurantes.** Lo elegimos por ser breve, sonar moderno y permitir que la marca crezca junto con el producto: desde tomar una comanda hasta coordinar la operación de varias sucursales.
+
+Su significado lo construimos con lo que hacemos. La **X** se convierte en el punto de encuentro de mesa/comandas, cocina, caja y gestión; los cuatro brazos del símbolo expresan esa coordinación. Esta es nuestra interpretación de marca, no una traducción ni una etimología del nombre.
+
+El nombre identifica a la herramienta; cada restaurante conserva su nombre, su personalidad y su forma de servir. Esa idea se resume en nuestro eslogan: **«Tu restaurante, en sincronía»**.
+
+### Nuestro objetivo
+
+**Ayudar a los restaurantes a trabajar con más orden, visibilidad y confianza, desde la primera comanda hasta el cierre de caja.**
+
+Queremos que el equipo comparta información clara sobre los pedidos y el servicio, y que quien administra el negocio pueda entender sus ventas y sus cobros. Buscamos reducir confusiones y facilitar las decisiones del día a día, para dedicar más atención a los clientes.
+
+### Misión y visión
+
+**Misión:** conectar mesas, cocina, caja e información del negocio mediante herramientas claras y prácticas para las personas que operan un restaurante.
+
+**Visión:** ser una herramienta de confianza para restaurantes independientes y negocios en crecimiento, acompañándolos a ordenar su operación sin perder su identidad.
+
+Estos son nuestros objetivos de marca y producto; orientan lo que construimos. Las funciones futuras se comunican cuando estén disponibles.
+
+### Texto breve para presentarnos
+
+> Tavixo es una plataforma creada para poner tu restaurante en sincronía. Conectamos mesas, cocina y caja para que tu equipo trabaje con información clara y tú tengas una mejor visión de tu negocio.
+
+## 2. Dirección de marca y elección de color
 
 Recomiendo **terracota, carbón y crema**, con maíz como acento. Es una elección de diseño para Tavixo: aproxima la plataforma al ambiente de servicio y mesa sin convertirla en la marca de un restaurante concreto. No presupone que un color aumente el apetito o las ventas.
 
@@ -16,7 +44,7 @@ La ruta recomendada se distingue con una base cálida, tipografía firme y fondo
 
 **Personalidad:** directa, cálida, ordenada y práctica. El tono habla con quien atiende un negocio: «Abre tu turno», «Cuenta cobrada», «Revisa tus ventas».
 
-## 2. Logotipo y símbolo
+## 3. Logotipo y símbolo
 
 El logotipo combina una **X abierta de cuatro brazos** con la palabra **tavixo**, en minúsculas y Manrope 800. El nombre comercial en una frase puede escribirse Tavixo; el dibujo del logo conserva las minúsculas.
 
@@ -37,7 +65,7 @@ Archivos maestros:
 
 Las dos variantes con sufijo `comparison` son únicamente muestras de las rutas cromáticas, no versiones oficiales adicionales.
 
-## 3. Construcción geométrica
+## 4. Construcción geométrica
 
 El símbolo se dibuja en una retícula de **64 × 64 unidades**. El módulo **u = 8 unidades** organiza la construcción y el espacio de protección.
 
@@ -54,7 +82,7 @@ En el archivo horizontal, el símbolo se escala 1.3 veces; la palabra parte de x
 
 La geometría está en `assets/construction.svg`; se regenera con `node scripts/generate-tavixo-brand.mjs`. No se basa en una proporción áurea ni en una retícula ornamental.
 
-## 4. Protección, reducción y formatos
+## 5. Protección, reducción y formatos
 
 Deja al menos **1u fuera del área nominal del símbolo**. En el conjunto horizontal, usa como margen mínimo 1u multiplicado por el factor de escala del símbolo (10.4 unidades en el SVG maestro). Mantén ese espacio libre de texto, bordes y otros logos.
 
@@ -65,7 +93,7 @@ Deja al menos **1u fuera del área nominal del símbolo**. En el conjunto horizo
 
 Son recomendaciones de esta propuesta, sujetas a la prueba final en los dispositivos de uso. La hoja `Prueba-tamanos.png` permite comparar reducciones. Para ampliar o imprimir, usa SVG; los PNG son exportaciones transparentes, no el original editable. Los colores están en sRGB/HEX; las piezas de imprenta necesitan una prueba de color con el proveedor.
 
-## 5. Paleta y contraste
+## 6. Paleta y contraste
 
 | Token | Nombre | HEX | Aplicación |
 | --- | --- | --- | --- |
@@ -95,7 +123,7 @@ Estas combinaciones superan 4.5:1 para texto normal. La pauta de referencia es [
 
 No usar blanco sobre maíz ni barro sobre carbón para textos pequeños. Los bordes arena son separadores; un campo o control que necesite límite visible utiliza piedra y un foco claro.
 
-## 6. Estados y accesibilidad
+## 7. Estados y accesibilidad
 
 La paleta de marca y los estados se gestionan por separado. Un botón terracota no significa error. Cancelar debe llevar verbo explícito, icono y una disposición distinta de la acción principal.
 
@@ -103,7 +131,7 @@ Colores semánticos propuestos para nuevas piezas: éxito verde `#246445`, aviso
 
 El foco usa contorno azul `#2563EB` de 3 px, separado 3 px del componente. Mantener controles de al menos 44 px de alto, texto de cuerpo de 16 px y zoom sin pérdida de funciones. Los gráficos llevan leyenda, unidades y valores además de color. En tablas, importes alineados a la derecha y nombres a la izquierda.
 
-## 7. Tipografía
+## 8. Tipografía
 
 **Manrope** es la familia propuesta para marca e interfaz. Se incluye su archivo variable 200–800 y su licencia SIL OFL 1.1 completa. Fuente oficial: [Google Fonts / Manrope](https://github.com/google/fonts/tree/main/ofl/manrope).
 
@@ -119,7 +147,7 @@ El foco usa contorno azul `#2563EB` de 3 px, separado 3 px del componente. Mante
 
 Se verificó que la fuente contiene `tnum`. Para importes y folios numéricos aplica `font-variant-numeric: tabular-nums lining-nums`; evita que salten las columnas al actualizar cifras. No uses el peso 200 para datos de trabajo. Arial y sans-serif son respaldo si aún no carga la fuente.
 
-## 8. Formas, componentes y movimiento
+## 9. Formas, componentes y movimiento
 
 Espaciado base 4 px; escala 4, 8, 12, 16, 24, 32, 48 y 64. Radios: 8 px en campos, 10 px en botones, 16 px en tarjetas y 24 px en paneles de presentación.
 
@@ -129,7 +157,7 @@ Iconos de línea de 1.75–2 px a tamaño 24, con nombres accesibles. El símbol
 
 Modo oscuro institucional: carbón de fondo, crema para texto, maíz para detalles y botones claros con texto carbón. No invertir automáticamente el panel de trabajo ni los logos de restaurantes.
 
-## 9. Plataforma y restaurante
+## 10. Plataforma y restaurante
 
 **Tavixo** identifica la herramienta en acceso, sitio comercial, materiales de venta y ayuda. **El restaurante** ocupa el encabezado de su operación, su configuración y sus tickets.
 
@@ -141,7 +169,7 @@ Modo oscuro institucional: carbón de fondo, crema para texto, maíz para detall
 
 La identidad ya se integró al acceso, tipografía, valores base e iconos de la plataforma. Esta entrega contiene sus activos y documentación. Las futuras aplicaciones requieren revisar contraste y estados en las pantallas reales.
 
-## 10. Voz y mensajes
+## 11. Voz y mensajes
 
 Habla de tareas concretas, en español claro y con tuteo respetuoso. Frases de referencia:
 
@@ -152,7 +180,7 @@ Habla de tareas concretas, en español claro y con tuteo respetuoso. Frases de r
 
 Evita «la solución definitiva» o promesas de aumentar ventas sin evidencia. En promoción, comunica lo que el producto ya hace. No anuncies operación sin internet, facturación CFDI, cobro bancario integrado o impresión física mientras no estén implementados.
 
-## 11. Aplicaciones
+## 12. Aplicaciones
 
 **Sitio comercial y portada:** fondo carbón, logo invertido, titular crema y una acción terracota sobre una tarjeta clara. Usar espacio amplio y una captura real debidamente revisada; los mockups de esta guía están marcados como conceptuales.
 
@@ -164,11 +192,11 @@ Evita «la solución definitiva» o promesas de aumentar ventas sin evidencia. E
 
 **Dashboard:** superficies claras, importes grandes, colores usados con moderación y marcas de estado consistentes. Los datos de la lámina son ilustrativos, no un reporte real.
 
-## 12. Usos incorrectos
+## 13. Usos incorrectos
 
 No estirar, inclinar, girar el símbolo ni cambiar sus proporciones respecto a la palabra. No reconstruirlo con emojis ni cambiar sólo el brazo destacado de posición. No añadir sombras, contornos o degradados al logo. No usar la variante clara sobre blanco ni la principal sobre carbón. No escribir un eslogan dentro del archivo del logo a tamaños pequeños. No presentar una ruta comparativa como si fuera una cuarta variante oficial.
 
-## 13. Entrega y estado
+## 14. Entrega y estado
 
 El directorio `marketing/marca/tavixo/` contiene la guía fuente, SVG maestros, fuente/licencia, tokens, manifiesto y vista HTML sin dependencias de red. `outputs/marca-tavixo/` contiene las exportaciones PNG y la copia de lectura de esta guía. El ZIP conserva ambas rutas para que los enlaces relativos funcionen después de extraerlo.
 

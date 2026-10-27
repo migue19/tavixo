@@ -2,6 +2,18 @@
 
 Dirección aprobada por el usuario el 27 de octubre de 2026. Integración publicada con autorización y verificada por HTTPS el mismo día. Los restaurantes conservan su propia identidad.
 
+## Por qué Tavixo y nuestro objetivo
+
+Tavixo es un nombre de marca creado, elegido por ser breve, sonar moderno y acompañar el crecimiento de la plataforma. La X representa el encuentro de mesas/comandas, cocina, caja y gestión: es una interpretación de marca, no una traducción ni una etimología.
+
+**Nuestro objetivo:** ayudar a los restaurantes a trabajar con más orden, visibilidad y confianza, desde la primera comanda hasta el cierre de caja.
+
+**Misión:** conectar mesas, cocina, caja e información del negocio mediante herramientas claras y prácticas para las personas que operan un restaurante.
+
+**Visión:** ser una herramienta de confianza para restaurantes independientes y negocios en crecimiento, acompañándolos a ordenar su operación sin perder su identidad.
+
+El relato completo está al inicio de la guía y en su [sección visual de nombre y propósito](../marketing/marca/tavixo/preview/index.html#nombre-y-proposito). También se incluye una [lámina independiente](../outputs/marca-tavixo/Nombre-y-proposito-Tavixo.png).
+
 ## Dirección recomendada
 
 Terracota **#A3432F**, carbón **#24211F** y crema **#FAF6EF**, con maíz **#EAB766** como acento. Busca una presencia cálida y una separación visual respecto al jade de Tepahti. Se muestran también las rutas verde y carbón/ámbar para comparar; no hay un color obligatorio para el ramo.

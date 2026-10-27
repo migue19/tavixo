@@ -23,3 +23,10 @@ No se modificaron código del producto, configuración de restaurantes ni servic
 
 
 Tras publicar la plataforma se actualizaron los textos de estado de guía, lámina y ZIP, sin alterar la geometría ni los colores aprobados. El paquete no es una captura ni una prueba interactiva del producto.
+
+
+## Nombre y propósito — ampliación solicitada
+
+Agregada sección al inicio de la guía: nombre creado, razones de elección y relación de la X con la operación; objetivo, misión, visión y texto breve de presentación. Se distingue la interpretación de marca de una etimología; no se atribuye un origen lingüístico al nombre. La sección se incorpora al HTML, lámina general, lámina independiente SVG/PNG, copia Markdown y ZIP.
+
+Render de la lámina independiente inspeccionado; 15 SVG válidos, enlaces HTML y copia de guía verificados; ZIP íntegro. Los maestros de logo/icono siguen idénticos a los activos publicados. Cambio exclusivo de documentación y materiales: sin cambios de app ni despliegue. La referencia de diseño sigue siendo la guía local de Tepahti, con un relato propio para Tavixo.
