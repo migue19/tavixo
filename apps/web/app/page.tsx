@@ -103,7 +103,7 @@ export default function Home() {
       <header>
         {session?.restaurant.branding ? (
           <a className="restaurant-identity" href="/">
-            <img src={session.restaurant.branding.logo} alt={`Logo de ${session.restaurant.name}`} width={88} height={88} />
+            {session.restaurant.branding.logo && <img src={session.restaurant.branding.logo} alt={`Logo de ${session.restaurant.name}`} width={88} height={88} />}
             <span><strong>{session.restaurant.name}</strong><small>Tu restaurante, en sincronía</small></span>
           </a>
         ) : <><a className="brand" href="/">tavixo<span>●</span></a><span className="tag">Tu restaurante, en sincronía</span></> }

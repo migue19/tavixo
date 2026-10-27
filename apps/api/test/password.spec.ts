@@ -17,6 +17,8 @@ import { ticketPdf, TicketKind, Ticket } from '../src/ticket';
 describe('Restaurant branding', () => {
   it('uses only the exact tenant identity and keeps other tenants generic', () => {
     assert.equal(restaurantBranding('birria-el-cachanilla')?.primary, '#0b0907');
+    assert.equal(restaurantBranding('bill-cochi-nada')?.primary, '#075839');
+    assert.equal(restaurantBranding('other')?.logo, undefined);
     for (const slug of ['other', 'Birria-el-cachanilla', '../birria-el-cachanilla', '']) {
       assert.equal(restaurantBranding(slug), null);
     }

@@ -186,3 +186,11 @@ En **Reportes de ventas**, selecciona la sucursal y las fechas. Cuando cargue el
 El archivo `.xlsx` contiene **Resumen**, **Ventas por día** y **Productos más vendidos**, con importes numéricos en pesos mexicanos y todos los renglones de productos del período. Puedes ordenar y filtrar el detalle en Excel. Incluye las fechas, sucursal y hora de generación.
 
 La descarga vuelve a consultar los cobros al generar el archivo; si hubo una venta nueva después de cargar la pantalla, puede aparecer en el Excel. Actualiza el reporte para comparar. Sólo incluye cuentas cobradas, sin fondo inicial, retiros ni gastos de caja. Disponible para propietario, gerente y cajero; el cajero conserva el acceso limitado a su sucursal.
+
+## Personalizar logo y colores
+
+Con una cuenta de propietario o gerente, abre **Configuración → Identidad del restaurante**. Selecciona un logo PNG/JPG de hasta 512 KB y de 128 a 2048 píxeles por lado. Elige un color principal oscuro, un acento y un fondo claro; revisa la vista previa y pulsa **Guardar identidad**. Si el contraste no permite leer bien, el sistema te pedirá ajustar la combinación.
+
+Puedes **Quitar logo** o **Restablecer colores sugeridos**. Los cambios se aplican sólo a este restaurante. La marca aparece en el panel y tickets; el archivo Excel adopta sus colores. Los demás usuarios pueden refrescar la página para ver la nueva identidad.
+
+En el primer acceso puedes elegir **Personalizar ahora** o **Más tarde**. Omitirlo no impide usar Tavixo y puedes volver desde Configuración. La página de acceso mantiene la marca de Tavixo. Meseros, cocina y cajeros no modifican esta configuración.

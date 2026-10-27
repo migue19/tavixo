@@ -40,7 +40,7 @@ export class ReportsService {
           throw new ForbiddenException();
         const branch = await tx.branch.findFirst({
           where: { id: branchId, restaurantId: member.restaurantId },
-          select: { id: true, name: true, restaurant: { select: { name: true, slug: true } } },
+          select: { id: true, name: true, restaurant: { select: { name: true, slug: true, branding: true } } },
         });
         if (!branch) throw new NotFoundException("Sucursal no encontrada");
         // Prisma timestamps store UTC without a timezone. Bind ISO strings explicitly

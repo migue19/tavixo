@@ -539,7 +539,7 @@ export class OrdersService {
               ? "Cuenta cerrada · sin pago registrado"
               : "Cuenta pendiente de pago",
           restaurant: order.branch.restaurant.name,
-          branding: restaurantBranding(order.branch.restaurant.slug),
+          branding: restaurantBranding(order.branch.restaurant.slug, order.branch.restaurant.branding),
           branch: order.branch.name,
           address: order.branch.address,
           order: {

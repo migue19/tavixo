@@ -115,7 +115,8 @@ export class AuthService {
         id: member.restaurantId,
         name: member.restaurant.name,
         slug: member.restaurant.slug,
-        branding: restaurantBranding(member.restaurant.slug),
+        branding: restaurantBranding(member.restaurant.slug, member.restaurant.branding),
+        brandingSetupNeeded: !member.restaurant.branding && !member.restaurant.brandingPromptDismissed && member.restaurant.slug !== "birria-el-cachanilla",
       },
     };
   }

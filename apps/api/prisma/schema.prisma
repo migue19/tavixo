@@ -22,6 +22,8 @@ model User {
   memberships Membership[]
 }
 model Restaurant {
+  branding Json?
+  brandingPromptDismissed Boolean @default(false)
   id String @id @default(uuid()) @db.Uuid
   slug String @unique
   name String

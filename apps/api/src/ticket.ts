@@ -1,4 +1,4 @@
-import { Branding } from "./branding";
+import { Branding, isUploadedLogo } from "./branding";
 import PDFDocument from "pdfkit";
 import { resolve as assetPath } from "node:path";
 import { IsEnum } from "class-validator";
@@ -82,11 +82,16 @@ export function ticketPdf(ticket: Ticket): Promise<Buffer> {
         .text(s, { width: 198.77, lineGap: 3 });
     };
     try {
-      // Select the bundled image by identity, never by a supplied filesystem path.
-      if (ticket.branding?.key === "birria-el-cachanilla") {
-        doc.image(assetPath(__dirname, "../assets/branding/birria-el-cachanilla.jpg"), 77, doc.y, { width: 72 });
+      // Only validated embedded PNGs or a closed map of bundled assets are allowed.
+      const bundled: Record<string,string> = { "/branding/birria-el-cachanilla.jpg": "birria-el-cachanilla.jpg", "/branding/bill-cochi-nada.png": "bill-cochi-nada.png" };
+      const logo = ticket.branding?.logo;
+      const image = logo && isUploadedLogo(logo) ? Buffer.from(logo.split(",")[1], "base64") : logo && bundled[logo] ? assetPath(__dirname, "../assets/branding/", bundled[logo]) : null;
+      if (image) {
+        doc.image(image, 77, doc.y, { fit: [72,72], align: "center", valign: "center" });
         doc.y += 82;
-        doc.moveTo(14, doc.y).lineTo(212, doc.y).strokeColor("#d4a466").stroke();
+      }
+      if (ticket.branding) {
+        doc.moveTo(14, doc.y).lineTo(212, doc.y).strokeColor(ticket.branding.accent).stroke();
         doc.y += 10;
       }
       text(ticket.restaurant, 14, true);

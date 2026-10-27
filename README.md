@@ -383,3 +383,7 @@ Acceso principal: https://tavixo.nut.com.mx/. El acceso anterior de Birria redir
 ### Segundo piloto
 
 Bill-Cochi-Nada (`bill-cochi-nada`) está registrado con una cuenta propietaria independiente, 5 categorías, 30 productos y 3 mesas de 4 lugares. Ver [PILOT_ONBOARDING_RESULTS.md](PILOT_ONBOARDING_RESULTS.md) para alcance y comprobaciones. Las credenciales se entregan por archivo privado fuera de Git.
+
+### Configuración de identidad y primera entrada
+
+Implementación pendiente de publicación: configuración por restaurante para subir/quitar logo PNG/JPG, elegir paleta y ver una previsualización, con invitación inicial opcional para propietarios/gerentes. Migración aditiva de configuración en Restaurant; imágenes normalizadas guardadas en PostgreSQL, sin volumen adicional ni URLs remotas. Incluye identidad sugerida de Bill-Cochi-Nada sin modificar la marca de Birria. Ver [docs/PERSONALIZACION.md](docs/PERSONALIZACION.md).

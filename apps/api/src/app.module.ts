@@ -1,3 +1,4 @@
+import { BrandingController } from "./branding.controller";
 import { Controller, Get, Module } from "@nestjs/common";
 import { APP_GUARD } from "@nestjs/core";
 import { JwtModule } from "@nestjs/jwt";
@@ -55,6 +56,7 @@ class HealthController {
     ThrottlerModule.forRoot([{ ttl: 60000, limit: 100 }]),
   ],
   controllers: [
+    BrandingController,
     AuthController,
     RestaurantController,
     ManagementController,

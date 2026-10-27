@@ -168,7 +168,7 @@ export default function TicketPanel({
             className="digital-ticket"
             aria-label="Vista previa del ticket"
           >
-            {ticket.branding && <img className="ticket-logo" src={ticket.branding.logo} alt={`Logo de ${ticket.restaurant}`} width={112} height={112} />}
+            {ticket.branding?.logo && <img className="ticket-logo" src={ticket.branding.logo} alt={`Logo de ${ticket.restaurant}`} width={112} height={112} />}
             <h4>{ticket.restaurant}</h4>
             <p className="ticket-center">
               {ticket.branch}

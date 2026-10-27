@@ -1,6 +1,7 @@
 "use client";
 import type { Branding } from "./branding";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import BrandSettings from "./brand-settings";
 import Catalog from "./catalog";
 import Orders from "./orders";
 import Cash from "./cash";
@@ -10,7 +11,7 @@ export type Session = {
   accessToken: string;
   expiresIn: number;
   user: { name: string; email: string; role: string; branchId?: string | null };
-  restaurant: { id: string; name: string; slug: string; branding?: Branding | null };
+  restaurant: { id: string; name: string; slug: string; branding?: Branding | null; brandingSetupNeeded?: boolean };
 };
 type Branch = { id: string; name: string; address: string; active: boolean };
 type Member = {
@@ -179,6 +180,10 @@ export default function Management({
           </select>
         </label>
       </div>
+      {administrative && session.restaurant.brandingSetupNeeded && tab !== "branding" && <section className="card branding-welcome" aria-label="Personaliza tu restaurante">
+        <div><h2>Haz tuyo este espacio</h2><p>Agrega el logo y los colores de {session.restaurant.name}. También puedes hacerlo después desde Configuración.</p></div>
+        <div className="actions"><button disabled={disabled} onClick={() => setTab("branding")}>Personalizar ahora</button><button className="secondary" disabled={disabled} onClick={() => void act(async () => { await api("/restaurant/branding/dismiss", "POST"); onSession({...session,restaurant:{...session.restaurant,brandingSetupNeeded:false}}); }, "Puedes personalizarlo después desde Configuración.")}>Más tarde</button></div>
+      </section>}
       <nav className="workspace-navigation" aria-label="Administración">
         {[
           {
@@ -200,6 +205,7 @@ export default function Management({
                 ],
               }]
             : []),
+          ...(administrative ? [{ title: "Configuración", links: [["branding", "Identidad del restaurante"]] }] : []),
           {
             title: "Gestión",
             links: [
@@ -243,6 +249,7 @@ export default function Management({
         </p>
       )}
       {loading && <p role="status">Cargando restaurante…</p>}
+      {administrative && tab === "branding" && <BrandSettings key={session.restaurant.id} session={session} online={online} onSaved={branding => onSession({...session,restaurant:{...session.restaurant,branding,brandingSetupNeeded:false}})} />}
       {tab === "overview" && (
         <>
           <div className="stats">

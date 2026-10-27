@@ -8,7 +8,7 @@ export async function salesExcel(report: Sales): Promise<Buffer> {
   const book = new ExcelJS.Workbook();
   book.creator = "Tavixo";
   book.created = new Date(report.generatedAt);
-  const brand = restaurantBranding(report.restaurant.slug);
+  const brand = restaurantBranding(report.restaurant.slug, report.restaurant.branding);
   const dark = brand?.primary.slice(1) ?? "123C35";
   const accent = brand?.accent.slice(1) ?? "C98546";
   function sheet(name: string, headers: string[], widths: number[]) {

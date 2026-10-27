@@ -5,7 +5,7 @@ import "reflect-metadata";
 import { INestApplication } from "@nestjs/common";
 import { Test } from "@nestjs/testing";
 import { JwtService } from "@nestjs/jwt";
-import { Role } from "@prisma/client";
+import { Role, Prisma } from "@prisma/client";
 import request from "supertest";
 import { randomUUID } from "node:crypto";
 import { cashRange, mexicoDay } from "../src/cash.service";
@@ -3141,4 +3141,71 @@ it("exports zero sales and treats formula-looking product names as text", async 
   const nameCell = book.getWorksheet("Productos más vendidos")!.getCell("A7");
   assert.equal(nameCell.type, ExcelJS.ValueType.String);
   assert.equal(nameCell.value, '=HYPERLINK("https://example.test","producto")');
+});
+
+it("saves tenant logo and palette, persists onboarding and includes branding in sessions and exports", async () => {
+  const sharp = (await import("sharp")).default;
+  const f = await paymentFixture();
+  const logo = await sharp({ create: { width: 256, height: 192, channels: 4, background: "#075839" } }).png().toBuffer();
+  const beforeB = await db.restaurant.findUniqueOrThrow({where:{id:b}});
+  const settingsPath = "/api/restaurant/branding";
+  let res = await request(app.getHttpServer()).get(settingsPath).set("Authorization",f.auth).expect(200);
+  assert.equal(res.body.setupNeeded,true);
+  res = await request(app.getHttpServer()).post(settingsPath).set("Authorization",f.auth)
+    .field("primary","#075839").field("accent","#eed9a7").field("surface","#fffaf0").field("logoAction","replace")
+    .attach("logo",logo,{filename:"logo.png",contentType:"image/png"}).expect(201);
+  assert.equal(res.body.setupNeeded,false);
+  assert.match(res.body.branding.logo,/^data:image\/png;base64,/);
+  const savedLogo = res.body.branding.logo;
+  const metadata = await sharp(Buffer.from(savedLogo.split(",")[1],"base64")).metadata();
+  assert.equal(metadata.width,256);assert.equal(metadata.height,192);
+  const session = await login();
+  assert.equal(session.body.restaurant.branding.primary,"#075839");
+  assert.equal(session.body.restaurant.branding.logo,savedLogo);
+  assert.equal(session.body.restaurant.brandingSetupNeeded,false);
+  const ticket = await request(app.getHttpServer()).get(`${f.base}/${f.order.id}/ticket`).set("Authorization",f.auth).expect(200);
+  assert.equal(ticket.body.branding.logo,savedLogo);
+  const pdf = await request(app.getHttpServer()).get(`${f.base}/${f.order.id}/ticket.pdf`).set("Authorization",f.auth).expect(200);
+  assert(pdf.body.includes(Buffer.from("/Subtype /Image")));
+  const afterB = await db.restaurant.findUniqueOrThrow({where:{id:b}});
+  assert.deepEqual(afterB,beforeB);
+  await request(app.getHttpServer()).post(settingsPath).set("Authorization",f.auth)
+    .field("primary","#123c35").field("accent","#eed9a7").field("surface","#fffaf0").field("logoAction","keep").expect(201);
+  res=await request(app.getHttpServer()).get(settingsPath).set("Authorization",f.auth).expect(200);assert.equal(res.body.branding.logo,savedLogo);
+  await request(app.getHttpServer()).post(settingsPath).set("Authorization",f.auth)
+    .field("primary","#123c35").field("accent","#eed9a7").field("surface","#fffaf0").field("logoAction","remove").expect(201);
+  res=await request(app.getHttpServer()).get(settingsPath).set("Authorization",f.auth).expect(200);assert.equal(res.body.branding.logo,null);
+});
+
+it("rejects unauthorized branding, fake/oversized images, low contrast and foreign tenant fields", async () => {
+  const sharp = (await import("sharp")).default;
+  const f = await paymentFixture(),path="/api/restaurant/branding";
+  await db.restaurant.update({where:{id:a},data:{branding:Prisma.DbNull,brandingPromptDismissed:false}});
+  const initial=await request(app.getHttpServer()).get(path).set("Authorization",f.auth).expect(200);assert.equal(initial.body.setupNeeded,true);
+  await request(app.getHttpServer()).get(path).expect(401);
+  for(const role of ["WAITER","CASHIER","KITCHEN"]){
+    await request(app.getHttpServer()).get(path).set("Authorization",f.staff[role]).expect(403);
+    await request(app.getHttpServer()).post(path).set("Authorization",f.staff[role]).send({}).expect(403);
+    await request(app.getHttpServer()).post(path+"/dismiss").set("Authorization",f.staff[role]).expect(403);
+  }
+  await request(app.getHttpServer()).get(path).set("Authorization",f.staff.MANAGER).expect(200);
+  const send=(override:Record<string,string>={})=>{
+    let req=request(app.getHttpServer()).post(path).set("Authorization",f.auth).set("X-Forwarded-For","203.0.113.212");
+    for(const [k,v] of Object.entries({primary:"#075839",accent:"#eed9a7",surface:"#fffaf0",logoAction:"replace",...override}))req=req.field(k,v);
+    return req;
+  };
+  const snapshot=await db.restaurant.findUniqueOrThrow({where:{id:a}});
+  await send().attach("logo",Buffer.from("<svg><script>alert(1)</script></svg>"),{filename:"fake.png",contentType:"image/png"}).expect(400);
+  const tiny=await sharp({create:{width:16,height:16,channels:3,background:"white"}}).png().toBuffer();
+  await send().attach("logo",tiny,{filename:"tiny.png",contentType:"image/png"}).expect(400);
+  await send().attach("logo",Buffer.alloc(513*1024),{filename:"big.png",contentType:"image/png"}).expect(413);
+  await send({primary:"#ffffff",logoAction:"keep"}).expect(400);
+  await send({primary:"red",logoAction:"keep"}).expect(400);
+  await send({surface:"#000000",logoAction:"keep"}).expect(400);
+  await send({restaurantId:b,logoAction:"keep"}).expect(400);
+  await send().expect(400);
+  assert.deepEqual(await db.restaurant.findUniqueOrThrow({where:{id:a}}),snapshot);
+  await request(app.getHttpServer()).post(path+"/dismiss").set("Authorization",f.auth).expect(201);
+  const res=await request(app.getHttpServer()).get(path).set("Authorization",f.auth).expect(200);assert.equal(res.body.setupNeeded,false);
+  const refreshed=await login();assert.equal(refreshed.body.restaurant.brandingSetupNeeded,false);
 });
