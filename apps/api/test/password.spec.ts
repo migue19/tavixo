@@ -12,7 +12,7 @@ describe('Password hashing', () => {
   });
 });
 
-import { restaurantBranding } from '../src/branding';
+import { restaurantBranding, brandingDefaults, contrast, brightness } from '../src/branding';
 import { ticketPdf, TicketKind, Ticket } from '../src/ticket';
 describe('Restaurant branding', () => {
   it('uses only the exact tenant identity and keeps other tenants generic', () => {
@@ -36,5 +36,20 @@ describe('Restaurant branding', () => {
     assert.equal(generic.subarray(0,4).toString(), '%PDF');
     assert.equal(generic.includes(Buffer.from('/Subtype /Image')), false);
     assert.equal(branded.includes(Buffer.from('/Subtype /Image')), true);
+  });
+});
+
+
+describe('Tavixo default palette', () => {
+  it('meets the upload palette contract and keeps tenant overrides and curated defaults', () => {
+    const generic = brandingDefaults('new-restaurant');
+    assert.ok(contrast(generic.primary, '#ffffff') >= 4.5);
+    assert.ok(contrast(generic.primary, generic.surface) >= 4.5);
+    assert.ok(contrast(generic.primary, generic.accent) >= 3);
+    assert.ok(brightness(generic.surface) >= .7);
+    const custom = {primary:'#075839',accent:'#eed9a7',surface:'#fffaf0',logo:null};
+    assert.deepEqual(restaurantBranding('custom',custom), {key:'custom',...custom});
+    assert.equal(brandingDefaults('birria-el-cachanilla').primary,'#0b0907');
+    assert.equal(brandingDefaults('bill-cochi-nada').primary,'#075839');
   });
 });

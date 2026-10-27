@@ -15,6 +15,7 @@
 - JWT de acceso y refresh rotatorio en cookie segura. No exponer tokens ni secretos en UI, logs, pruebas, documentación ni Git.
 - Cargas de archivos: reutilizar `apps/web/app/components/file-upload.tsx` para ofrecer arrastrar y soltar y selección con botón/teclado, manteniendo formatos, límites y validación del servidor.
 - PWA requiere conexión para operar. Tarjetas se cobran en terminal externa; Tavixo registra el resultado. Tickets operativos no son CFDI. No prometer offline, integración bancaria o funciones pendientes.
+- Identidad de plataforma aprobada: terracota `#A3432F`, carbón `#24211F`, crema `#FAF6EF`, Manrope y símbolo X abierta. Maestros en `marketing/marca/tavixo/`; sincronizar activos públicos con `node scripts/sync-platform-brand.mjs`. Consultar `docs/IDENTIDAD_TAVIXO.md` para distinguir integración local de publicación.
 - Marca por restaurante: apps/api/src/branding.ts. Mantener las dos copias del logo local para web/PDF; conservar colores de estados operativos y contraste accesible.
 
 ## Desarrollo y verificación

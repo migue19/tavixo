@@ -27,7 +27,7 @@ export function isUploadedLogo(logo: string) {
   return logo.length <= 350000 && /^data:image\/png;base64,[A-Za-z0-9+/]+={0,2}$/.test(logo);
 }
 export function brandingDefaults(slug: string): Branding {
-  return fallbackBranding(slug) ?? { key: slug, logo: null, primary: "#123c35", accent: "#e2c497", surface: "#faf8f2" };
+  return fallbackBranding(slug) ?? { key: slug, logo: null, primary: "#a3432f", accent: "#eab766", surface: "#faf6ef" };
 }
 export function brightness(color: string) {
   const rgb = color.slice(1).match(/../g)!.map(s => parseInt(s, 16) / 255).map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4);

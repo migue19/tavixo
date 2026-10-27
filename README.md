@@ -388,6 +388,6 @@ Bill-Cochi-Nada (`bill-cochi-nada`) está registrado con una cuenta propietaria 
 
 Disponible en producción desde el 26 de octubre de 2026: configuración por restaurante para subir/quitar logo PNG/JPG, elegir paleta y ver una previsualización, con invitación inicial opcional para propietarios/gerentes. Migración aditiva de configuración en Restaurant; imágenes normalizadas guardadas en PostgreSQL, sin volumen adicional ni URLs remotas. Incluye identidad sugerida de Bill-Cochi-Nada sin modificar la marca de Birria. Ver [docs/PERSONALIZACION.md](docs/PERSONALIZACION.md).
 
-## Propuesta de identidad Tavixo
+## Identidad Tavixo
 
-Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/crema, tipografía, tokens y aplicaciones. Es una propuesta para revisión; no cambia la identidad publicada ni la de los pilotos. Ver [docs/IDENTIDAD_TAVIXO.md](docs/IDENTIDAD_TAVIXO.md).
+Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/crema, tipografía, tokens y aplicaciones. Dirección visual aprobada; integración en acceso, fuente, PWA y paleta genérica validada localmente, pendiente de publicación. Las identidades de los pilotos se conservan. Ver [docs/IDENTIDAD_TAVIXO.md](docs/IDENTIDAD_TAVIXO.md).

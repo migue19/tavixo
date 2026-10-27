@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import { ReportsService } from "./reports.service";
-import { restaurantBranding } from "./branding";
+import { restaurantBranding, brandingDefaults } from "./branding";
 
 type Sales = Awaited<ReturnType<ReportsService["sales"]>>;
 const currency = '"$"#,##0.00;[Red]-"$"#,##0.00';
@@ -8,9 +8,9 @@ export async function salesExcel(report: Sales): Promise<Buffer> {
   const book = new ExcelJS.Workbook();
   book.creator = "Tavixo";
   book.created = new Date(report.generatedAt);
-  const brand = restaurantBranding(report.restaurant.slug, report.restaurant.branding);
-  const dark = brand?.primary.slice(1) ?? "123C35";
-  const accent = brand?.accent.slice(1) ?? "C98546";
+  const brand = restaurantBranding(report.restaurant.slug, report.restaurant.branding) ?? brandingDefaults(report.restaurant.slug);
+  const dark = brand.primary.slice(1);
+  const accent = brand.accent.slice(1);
   function sheet(name: string, headers: string[], widths: number[]) {
     const ws = book.addWorksheet(name, { views: [{ state: "frozen", ySplit: 6 }] });
     ws.columns = widths.map(width => ({ width }));

@@ -64,10 +64,10 @@ export default function ReportVisuals({ report }: { report: VisualReport }) {
                     <text x="82" y={210 - fraction * 165} textAnchor="end">{axisMoney(Math.round(max * fraction))}</text>
                   </g>
                 ))}
-                <polygon points={`${points[0].x},205 ${line} ${points[points.length - 1].x},205`} fill="var(--brand-surface, #e5eee0)" />
-                <polyline points={line} fill="none" stroke="var(--brand-primary, #286a52)" strokeWidth="3" strokeLinejoin="round" />
+                <polygon points={`${points[0].x},205 ${line} ${points[points.length - 1].x},205`} fill="var(--brand-surface, #F2E3D9)" />
+                <polyline points={line} fill="none" stroke="var(--brand-primary, #A3432F)" strokeWidth="3" strokeLinejoin="round" />
                 {points.map((point) => (
-                  <circle key={point.day} cx={point.x} cy={point.y} r={points.length <= 31 ? 4 : 2} fill="var(--brand-primary, #286a52)"><title>{`${point.day}: ${money(point.totalCents)}`}</title></circle>
+                  <circle key={point.day} cx={point.x} cy={point.y} r={points.length <= 31 ? 4 : 2} fill="var(--brand-primary, #A3432F)"><title>{`${point.day}: ${money(point.totalCents)}`}</title></circle>
                 ))}
                 {[...new Set([0, Math.floor((points.length - 1) / 2), points.length - 1])].map((index) => (
                   <text key={index} x={points[index].x} y="239" textAnchor={index === 0 ? "start" : index === points.length - 1 ? "end" : "middle"}>{dateLabel(points[index].day)}</text>
@@ -79,7 +79,7 @@ export default function ReportVisuals({ report }: { report: VisualReport }) {
         </article>
         <article className="card payment-mix">
           <p className="eyebrow">CÓMO TE PAGARON</p><h3>Efectivo y tarjeta</h3>
-          <div className="payment-donut" role="img" aria-label={hasSales ? `Efectivo ${cashShare.toFixed(1)}%, tarjeta ${(100 - cashShare).toFixed(1)}%.` : "Sin cobros en el período"} style={{ background: hasSales ? `conic-gradient(var(--brand-primary, #286a52) 0% ${cashShare}%, var(--brand-accent, #bd743c) ${cashShare}% 100%)` : "#e0e6dd" }}>
+          <div className="payment-donut" role="img" aria-label={hasSales ? `Efectivo ${cashShare.toFixed(1)}%, tarjeta ${(100 - cashShare).toFixed(1)}%.` : "Sin cobros en el período"} style={{ background: hasSales ? `conic-gradient(var(--brand-primary, #A3432F) 0% ${cashShare}%, var(--brand-accent, #EAB766) ${cashShare}% 100%)` : "#e0e6dd" }}>
             <div><strong>{hasSales ? "100%" : "0"}</strong><span>{hasSales ? "de tus cobros" : "cobros"}</span></div>
           </div>
           <dl className="payment-legend">

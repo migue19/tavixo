@@ -1,6 +1,6 @@
-const CACHE = 'tavixo-shell-v1';
+const CACHE = 'tavixo-shell-v2';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(['/offline.html', '/icon-192.png', '/icon-512.png'])));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(['/offline.html', '/icon-192.png', '/icon-512.png', '/icon-maskable-512.png'])));
   self.skipWaiting();
 });
 self.addEventListener('activate', event => {
@@ -11,7 +11,7 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request).catch(() => caches.match('/offline.html')));
-  } else if (['/icon-192.png', '/icon-512.png'].includes(url.pathname)) {
+  } else if (['/icon-192.png', '/icon-512.png', '/icon-maskable-512.png'].includes(url.pathname)) {
     event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request)));
   }
 });

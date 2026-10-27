@@ -45,3 +45,8 @@ La única entrada de archivos actual, **Subir logo**, utiliza el componente comp
 Las próximas cargas de archivos deben reutilizar este componente con sus propios formatos y límites.
 
 Ver [FILE_UPLOAD_DROP_RESULTS.md](../FILE_UPLOAD_DROP_RESULTS.md) para resultados del despliegue y límites de verificación.
+
+
+## Identidad de la plataforma — integración local pendiente de publicación
+
+El usuario aprobó el logo y la ruta terracota/carbón/crema de Tavixo. La aplicación local usa el nuevo logo en acceso y cabecera genérica, Manrope local e iconos PWA/navegador. Los restaurantes mantienen logo, colores guardados y valores curados de los pilotos. Los valores sugeridos para un restaurante nuevo sin identidad y el Excel genérico usan la nueva paleta. No se migran ni sobrescriben identidades existentes. Ver [IDENTIDAD_TAVIXO.md](IDENTIDAD_TAVIXO.md).

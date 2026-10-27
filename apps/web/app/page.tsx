@@ -94,7 +94,7 @@ export default function Home() {
     }
   }
   return (
-    <main className={session?.restaurant.branding ? "restaurant-branded" : undefined}
+    <main className={session?.restaurant.branding ? "restaurant-branded" : "platform-shell"}
       style={session?.restaurant.branding ? {
         "--brand-primary": session.restaurant.branding.primary,
         "--brand-accent": session.restaurant.branding.accent,
@@ -106,7 +106,7 @@ export default function Home() {
             {session.restaurant.branding.logo && <img src={session.restaurant.branding.logo} alt={`Logo de ${session.restaurant.name}`} width={88} height={88} />}
             <span><strong>{session.restaurant.name}</strong><small>Tu restaurante, en sincronía</small></span>
           </a>
-        ) : <><a className="brand" href="/">tavixo<span>●</span></a><span className="tag">Tu restaurante, en sincronía</span></> }
+        ) : <><a className="platform-brand" href="/" aria-label="Tavixo, inicio"><img src="/branding/tavixo-logo.svg" alt="Tavixo" width={193} height={48} /></a><span className="tag">Tu restaurante, en sincronía</span></> }
         {session && (
           <button className="secondary" onClick={logout} disabled={busy}>
             Cerrar sesión
@@ -128,22 +128,23 @@ export default function Home() {
         <p>Cargando sesión…</p>
       ) : !session ? (
         <section className="login">
-          <div>
-            <p className="eyebrow">TAVIXO MANAGER</p>
+          <div className="login-intro">
+            <p className="eyebrow">GESTIÓN PARA RESTAURANTES</p>
             <h1>
-              Todo empieza
+              Tu restaurante,
               <br />
-              en tu restaurante.
+              en sincronía.
             </h1>
             <p className="intro">
               Un solo espacio para administrar tu operación y mantener a tu
               equipo en sincronía.
             </p>
             <div className="pilot">
-              Cada restaurante, su propio espacio.
+              Mesas · Cocina · Caja
               <br />
-              <strong>Tu operación, en sincronía.</strong>
+              <strong>Todo tu equipo, en un mismo lugar.</strong>
             </div>
+            <img className="login-mark" src="/branding/tavixo-icon.svg" alt="" aria-hidden="true" width={72} height={72} />
           </div>
           <form onSubmit={login} className="card">
             <h2>Bienvenido</h2>

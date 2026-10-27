@@ -11,7 +11,7 @@ export default function BrandSettings({ session, online, onSaved }: { session: S
   useEffect(() => { savedCallback.current = onSaved; }, [onSaved]);
   useEffect(() => { mounted.current = true; heading.current?.focus(); return () => { mounted.current = false; }; }, []);
   const [value, setValue] = useState<Settings | null>(null);
-  const [colors, setColors] = useState({ primary: "#123c35", accent: "#e2c497", surface: "#faf8f2" });
+  const [colors, setColors] = useState({ primary: "#a3432f", accent: "#eab766", surface: "#faf6ef" });
   const [file, setFile] = useState<File | null>(null), [preview, setPreview] = useState<string | null>(null);
   const [remove, setRemove] = useState(false), [busy, setBusy] = useState(false), [loading, setLoading] = useState(true);
   const [error, setError] = useState(""), [notice, setNotice] = useState("");

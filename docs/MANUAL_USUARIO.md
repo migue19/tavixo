@@ -194,3 +194,8 @@ Con una cuenta de propietario o gerente, abre **Configuración → Identidad del
 Puedes **Quitar logo** o **Restablecer colores sugeridos**. Los cambios se aplican sólo a este restaurante. La marca aparece en el panel y tickets; el archivo Excel adopta sus colores. Los demás usuarios pueden refrescar la página para ver la nueva identidad.
 
 En el primer acceso puedes elegir **Personalizar ahora** o **Más tarde**. Omitirlo no impide usar Tavixo y puedes volver desde Configuración. La página de acceso mantiene la marca de Tavixo. Meseros, cocina y cajeros no modifican esta configuración.
+
+
+## Identidad de Tavixo — próxima actualización
+
+La identidad aprobada de Tavixo utiliza un símbolo de X abierta, colores terracota/carbón/crema y tipografía Manrope. Su integración está validada localmente, pendiente de publicación. Identifica la plataforma en el acceso y en los iconos; tu restaurante conserva su propio logo y los colores configurados. El campo Restaurante continúa vacío al entrar.
