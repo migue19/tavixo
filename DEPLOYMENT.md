@@ -73,3 +73,8 @@ Acceso principal `https://tavixo.nut.com.mx`; redirección 308 del dominio anter
 ## Identidad configurable — 26 de octubre de 2026
 
 Publicados editor de logo/colores e invitación inicial opcional. Incluye marca sugerida de Bill-Cochi-Nada y conserva Birria. Respaldo previo, migración aditiva y actualización exclusiva de API/web; 40 comprobaciones HTTPS aprobadas y datos de ambos pilotos preservados. Ver [BRANDING_SETTINGS_RESULTS.md](BRANDING_SETTINGS_RESULTS.md).
+
+
+## Corrección de carga de logos y login — 27 de octubre de 2026
+
+Publicada con autorización la versión `43c3c36`: optimización adaptativa de logos detallados que cumplían los requisitos de entrada pero superaban el límite al convertirse a PNG, y login genérico sin restaurante prellenado. Respaldo validado e imágenes de reversión; sólo API/web actualizadas, sin migración. 40 comprobaciones HTTPS, ambos archivos originales en controlador aislado y 4 comprobaciones del login servido aprobadas. Datos de ambos pilotos, PostgreSQL, otros contenedores, Nginx y renovación TLS conservados. Revisión interactiva escritorio/móvil pendiente. Ver [LOGO_UPLOAD_FIX_RESULTS.md](LOGO_UPLOAD_FIX_RESULTS.md).
