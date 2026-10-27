@@ -201,4 +201,4 @@ En el primer acceso puedes elegir **Personalizar ahora** o **Más tarde**. Omiti
 La identidad aprobada de Tavixo utiliza un símbolo de X abierta, colores terracota/carbón/crema y tipografía Manrope. Está publicada desde el 27 de octubre de 2026. Identifica la plataforma en el acceso y en los iconos; tu restaurante conserva su propio logo y los colores configurados. El campo Restaurante continúa vacío al entrar.
 
 
-Próxima actualización, pendiente de publicación: la página de acceso incluirá **¿Por qué Tavixo?**, debajo del formulario, con la explicación del nombre y nuestro objetivo. El enlace **Conoce por qué nos llamamos Tavixo** llevará directamente a esa sección. Al iniciar sesión se mostrará el espacio de tu restaurante.
+La página de acceso incluye **¿Por qué Tavixo?**, debajo del formulario, con la explicación del nombre y nuestro objetivo. El enlace **Conoce por qué nos llamamos Tavixo** lleva directamente a esa sección. Al iniciar sesión se muestra el espacio de tu restaurante.

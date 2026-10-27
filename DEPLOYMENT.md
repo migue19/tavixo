@@ -88,3 +88,8 @@ Publicada con autorización la versión `a758288`. La carga de logo permite arra
 ## Identidad de plataforma Tavixo — 27 de octubre de 2026
 
 Publicada con autorización la versión `57cf3a4`: logo aprobado, acceso carbón/crema/terracota, Manrope local, iconos navegador/Apple/PWA, caché de interfaz y paleta genérica coherente con la guía. Personalización de ambos pilotos conservada. Respaldo validado e imágenes de reversión; sólo API/web reconstruidas y recreadas, sin migración ni seed. 42 comprobaciones HTTPS de pilotos, 38 de marca y revisión de valores genéricos en API publicada aprobadas. PostgreSQL, otros contenedores, datos, `.env`, Nginx y renovación TLS conservados. Pendiente revisión interactiva en dispositivos. Ver [PLATFORM_BRAND_RESULTS.md](PLATFORM_BRAND_RESULTS.md).
+
+
+## Nombre y propósito en el acceso — 27 de octubre de 2026
+
+Publicada con autorización la versión `1458a58`: sección **¿Por qué Tavixo?** bajo el acceso y enlace desde la portada, con explicación del nombre, X del logo y objetivo. Sólo web reconstruida/recreada, con respaldo validado e imagen de reversión. 42 comprobaciones HTTPS de pilotos y 45 de marca/contenido aprobadas; API, PostgreSQL, demás contenedores, datos, `.env`, Nginx y renovación TLS conservados. Sin migración ni seed. Ver [BRAND_STORY_PAGE_RESULTS.md](BRAND_STORY_PAGE_RESULTS.md) para límites de revisión interactiva.
