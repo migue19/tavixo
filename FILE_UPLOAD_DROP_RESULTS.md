@@ -1,6 +1,6 @@
 # Arrastrar y soltar archivos — 27 de octubre de 2026
 
-Estado: implementado localmente; pendiente de autorización de publicación.
+Estado: publicado con autorización el 27 de octubre de 2026 en https://tavixo.nut.com.mx/. Versión de código `a758288`.
 
 ## Alcance
 
@@ -21,4 +21,17 @@ El componente recibe formatos, peso máximo y mensajes como parámetros para pr�
 - Inspección estática de selección/arrastre, estado deshabilitado, rechazo múltiple, reinicio del input, foco, nombre largo, vista previa y guardado.
 - Pendiente comprobación interactiva de arrastre real, teclado y vista escritorio/móvil: no hay herramienta de control de navegador disponible en esta sesión. No se presentan las comprobaciones estáticas como una prueba interactiva.
 
-No se desplegó ni se modificaron servicios del VPS. Una publicación de este cambio requiere sólo reconstruir y actualizar la web de Tavixo, con respaldo y verificaciones del procedimiento habitual.
+## Publicación
+
+Se reconstruyó y actualizó únicamente la web de Tavixo, con respaldo previo e imagen de reversión. No se ejecutaron migraciones ni seed.
+
+- Respaldo: `/opt/tavixo/backups/pre-file-drop-20261027T224416Z`; dump validado por índice, sin prueba de restauración.
+- Imagen de reversión: `tavixo-web:rollback-20261027T224416Z`.
+- Web saludable; API, PostgreSQL y todos los demás contenedores conservaron IDs y tiempos de inicio.
+- `.env`, hashes de Nginx y renovación TLS idénticos antes/después; sin cambios de DNS o firewall.
+- Recuentos y huellas de todas las tablas públicas, excepto sesiones temporales `RefreshSession`, idénticos antes/después.
+- 42 comprobaciones HTTPS aprobadas: ambos pilotos, identidad/onboarding conservados, sesión/refresh, aislamiento, catálogo/mesas/cuentas, Excel, PDF y redirección histórica.
+- 10 comprobaciones de los archivos JS/CSS servidos aprobadas: textos y estados de la zona de carga, estilos y login genérico. Estas comprobaciones no simulan un gesto de arrastre.
+- La prueba interactiva real de arrastre, teclado y vista escritorio/móvil sigue pendiente por falta de control de navegador en esta sesión.
+
+Los archivos del cliente y la guía de marca en preparación, sin seguimiento de Git, quedaron fuera del despliegue. Documentación actualizada en GitHub y sincronizada con Obsidian.

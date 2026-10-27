@@ -78,3 +78,8 @@ Publicados editor de logo/colores e invitación inicial opcional. Incluye marca 
 ## Corrección de carga de logos y login — 27 de octubre de 2026
 
 Publicada con autorización la versión `43c3c36`: optimización adaptativa de logos detallados que cumplían los requisitos de entrada pero superaban el límite al convertirse a PNG, y login genérico sin restaurante prellenado. Respaldo validado e imágenes de reversión; sólo API/web actualizadas, sin migración. 40 comprobaciones HTTPS, ambos archivos originales en controlador aislado y 4 comprobaciones del login servido aprobadas. Datos de ambos pilotos, PostgreSQL, otros contenedores, Nginx y renovación TLS conservados. Revisión interactiva escritorio/móvil pendiente. Ver [LOGO_UPLOAD_FIX_RESULTS.md](LOGO_UPLOAD_FIX_RESULTS.md).
+
+
+## Arrastrar y soltar archivos — 27 de octubre de 2026
+
+Publicada con autorización la versión `a758288`. La carga de logo permite arrastrar un archivo o seleccionarlo con botón; conserva validaciones, vista previa y guardado explícito. Respaldo validado e imagen de reversión; sólo web reconstruida/recreada, sin migración. 42 comprobaciones HTTPS y 10 de recursos públicos aprobadas. API, PostgreSQL, demás contenedores, datos, Nginx y renovación TLS conservados. Prueba interactiva del gesto y vista escritorio/móvil pendiente. Ver [FILE_UPLOAD_DROP_RESULTS.md](FILE_UPLOAD_DROP_RESULTS.md).

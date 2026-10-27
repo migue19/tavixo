@@ -189,7 +189,7 @@ La descarga vuelve a consultar los cobros al generar el archivo; si hubo una ven
 
 ## Personalizar logo y colores
 
-Con una cuenta de propietario o gerente, abre **Configuración → Identidad del restaurante**. Selecciona un logo PNG/JPG de hasta 512 KB y de 128 a 2048 píxeles por lado. La mejora de arrastrar y soltar está lista localmente, pendiente de publicación: podrás soltar un archivo en **Subir logo** o usar **Seleccionar archivo**. El archivo seleccionado se mostrará con su nombre y peso; no se envía hasta pulsar **Guardar identidad**. Elige un color principal oscuro, un acento y un fondo claro; revisa la vista previa y pulsa **Guardar identidad**. Si el contraste no permite leer bien, el sistema te pedirá ajustar la combinación.
+Con una cuenta de propietario o gerente, abre **Configuración → Identidad del restaurante**. Selecciona un logo PNG/JPG de hasta 512 KB y de 128 a 2048 píxeles por lado. Puedes soltar un archivo en **Subir logo** o usar **Seleccionar archivo**. El archivo seleccionado se mostrará con su nombre y peso; no se envía hasta pulsar **Guardar identidad**. Elige un color principal oscuro, un acento y un fondo claro; revisa la vista previa y pulsa **Guardar identidad**. Si el contraste no permite leer bien, el sistema te pedirá ajustar la combinación.
 
 Puedes **Quitar logo** o **Restablecer colores sugeridos**. Los cambios se aplican sólo a este restaurante. La marca aparece en el panel y tickets; el archivo Excel adopta sus colores. Los demás usuarios pueden refrescar la página para ver la nueva identidad.
 
