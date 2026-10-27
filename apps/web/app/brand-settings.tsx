@@ -59,7 +59,7 @@ export default function BrandSettings({ session, online, onSaved }: { session: S
           <input ref={fileInput} type="file" accept="image/png,image/jpeg" disabled={busy || !online} onChange={event => {
             const next = event.target.files?.[0]; if (!next) return;
             setError(""); setNotice("");
-            if (!["image/png","image/jpeg"].includes(next.type) || next.size > 512 * 1024) { setError("Elige un PNG o JPG de hasta 512 KB"); event.target.value = ""; return; }
+            if (!["image/png","image/jpeg"].includes(next.type) || next.size > 512 * 1024) { setFile(null); setError("Elige un PNG o JPG de hasta 512 KB"); event.target.value = ""; return; }
             setFile(next); setRemove(false);
           }} />
           <small>PNG o JPG, máximo 512 KB, entre 128 y 2048 px por lado. Recomendado: cuadrado; PNG transparente si lo tienes. No se aceptan SVG ni GIF; el logo se guarda como imagen estática.</small>

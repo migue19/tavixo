@@ -3209,3 +3209,31 @@ it("rejects unauthorized branding, fake/oversized images, low contrast and forei
   const res=await request(app.getHttpServer()).get(path).set("Authorization",f.auth).expect(200);assert.equal(res.body.setupNeeded,false);
   const refreshed=await login();assert.equal(refreshed.body.restaurant.brandingSetupNeeded,false);
 });
+
+
+it("accepts detailed JPEG and transparent PNG logos that exceed the normalized storage ceiling", async () => {
+  const sharp = (await import("sharp")).default;
+  const f = await paymentFixture();
+  let seed = 1729;
+  const pixels = Buffer.alloc(512 * 512 * 4);
+  for (let i = 0; i < pixels.length; i += 4) {
+    for (let c = 0; c < 3; c++) { seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0; pixels[i+c] = seed >>> 24; }
+    pixels[i+3] = i < 128 * 512 * 4 ? 0 : 255;
+  }
+  const source = sharp(pixels, {raw:{width:512,height:512,channels:4}});
+  const png = await source.clone().png({palette:true,colours:256}).toBuffer();
+  const jpg = await source.clone().jpeg({quality:80}).toBuffer();
+  for (const [bytes, mime] of [[jpg,"image/jpeg"],[png,"image/png"]] as const) {
+    assert.ok(bytes.length <= 512*1024);
+    const expanded = await sharp(bytes).png({compressionLevel:9}).toBuffer();
+    assert.ok(expanded.length > 256*1024, "fixture must reproduce PNG expansion");
+    const res = await request(app.getHttpServer()).post("/api/restaurant/branding").set("Authorization",f.auth)
+      .field("primary","#075839").field("accent","#eed9a7").field("surface","#fffaf0").field("logoAction","replace")
+      .attach("logo",bytes,{filename:mime === "image/png" ? "detailed.png" : "detailed.jpg",contentType:mime}).expect(201);
+    const saved = Buffer.from(res.body.branding.logo.split(",")[1],"base64");
+    assert.ok(saved.length <= 256*1024);
+    const info = await sharp(saved).metadata();
+    assert.equal(info.format,"png");assert.ok([384,512].includes(info.width!));assert.equal(info.height,info.width);
+    if (mime === "image/png") { const {data} = await sharp(saved).ensureAlpha().raw().toBuffer({resolveWithObject:true}); assert.equal(data[3],0); }
+  }
+});

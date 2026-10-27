@@ -39,7 +39,11 @@ export class BrandingController {
         const image = sharp(file.buffer, { limitInputPixels: 2048 * 2048, failOn: "error" });
         const info = await image.metadata();
         if (info.format !== (file.mimetype === "image/png" ? "png" : "jpeg") || (info.pages ?? 1) !== 1 || !info.width || !info.height || Math.min(info.width,info.height) < 128 || Math.max(info.width,info.height) > 2048) throw new Error();
-        const output = await image.rotate().resize({ width: 512, height: 512, fit: "inside", withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+        let output = await image.rotate().resize({ width: 512, height: 512, fit: "inside", withoutEnlargement: true }).png({ compressionLevel: 9 }).toBuffer();
+        // Detailed JPEGs can grow when converted to true-colour PNG. Quantize only
+        // when needed, retaining transparency and the existing storage ceiling.
+        if (output.length > 256 * 1024) output = await sharp(output).png({ palette: true, colours: 256, compressionLevel: 9, effort: 7 }).toBuffer();
+        if (output.length > 256 * 1024) output = await sharp(output).resize({ width: 384, height: 384, fit: "inside", withoutEnlargement: true }).png({ palette: true, colours: 128, compressionLevel: 9 }).toBuffer();
         if (output.length > 256 * 1024) throw new Error();
         uploaded = "data:image/png;base64," + output.toString("base64");
       } catch { throw new BadRequestException("Logo inválido: usa PNG/JPG de 128 a 2048 px por lado y hasta 512 KB; simplifica la imagen si no puede optimizarse"); }

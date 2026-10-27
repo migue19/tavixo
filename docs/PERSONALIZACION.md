@@ -14,7 +14,7 @@ En el primer acceso de un administrador sin configuración aparece **Haz tuyo es
 
 - PNG o JPG; hasta 512 KB.
 - Entre 128 y 2048 píxeles por lado; recomendado cuadrado, PNG transparente si está disponible.
-- El servidor valida tipo y decodificación reales, rechaza SVG/GIF y optimiza a PNG de hasta 512 px por lado. Se elimina metadata y se limita la salida a 256 KB.
+- El servidor valida tipo y decodificación reales, rechaza SVG/GIF y optimiza a PNG de hasta 512 px por lado. Se elimina metadata y se limita la salida a 256 KB. La corrección local para imágenes detalladas reduce la paleta sólo cuando hace falta y, como último recurso, ajusta a 384 px; conserva la transparencia. Esta corrección está pendiente de publicación.
 - El formulario conserva el logo actual, permite sustituirlo o quitarlo explícitamente. No acepta direcciones remotas ni rutas de archivos.
 
 ## Colores y alcance
