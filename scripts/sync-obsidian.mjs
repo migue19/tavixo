@@ -10,7 +10,7 @@ const output = resolve(vault, "Tavixo/Documentación sincronizada");
 await mkdir(output, { recursive: true });
 // Explicitly allow public documentation only. Never traverse work, secrets or backups.
 const roots = (await readdir(repo)).filter(name => /^(README|AGENTS|DEPLOYMENT|TEST_RESULTS|[A-Z0-9_]+_RESULTS)\.md$/.test(name));
-const docs = ["MANUAL_USUARIO.md", "MEJORAS_FUTURAS.md", "PERSONALIZACION.md", "OBSIDIAN.md"];
+const docs = ["MANUAL_USUARIO.md", "MEJORAS_FUTURAS.md", "PERSONALIZACION.md", "OBSIDIAN.md", "IDENTIDAD_TAVIXO.md"];
 const files = [...roots, ...docs.map(name => `docs/${name}`)];
 const commit = execFileSync("git", ["rev-parse", "--short", "HEAD"], { cwd: repo, encoding: "utf8" }).trim();
 for (const relative of files) {

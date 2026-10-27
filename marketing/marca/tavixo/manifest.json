@@ -1,0 +1,23 @@
+{
+  "name": "Tavixo",
+  "version": "1.0-proposal",
+  "date": "2026-10-27",
+  "status": "Propuesta para revisión; no publicada en la app",
+  "colors": {
+    "barro": "#A3432F",
+    "hover": "#873524",
+    "ink": "#24211F",
+    "cream": "#FAF6EF",
+    "maize": "#EAB766",
+    "muted": "#70665F",
+    "white": "#FFFFFF",
+    "line": "#DED6CC",
+    "soft": "#F2E3D9"
+  },
+  "typeface": "Manrope 200–800",
+  "fontLicense": "fonts/OFL.txt",
+  "fontSource": "https://github.com/google/fonts/tree/main/ofl/manrope",
+  "logo": "assets/logo-color.svg",
+  "icon": "assets/icon.svg",
+  "generator": "scripts/generate-tavixo-brand.mjs"
+}

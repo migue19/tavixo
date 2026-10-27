@@ -1,0 +1,18 @@
+/* Tavixo v1 — propuesta. Aplicar de forma explícita; no altera la app. */
+@font-face { font-family:Manrope; src:url('./fonts/Manrope-Variable.ttf') format('truetype'); font-weight:200 800; font-style:normal; font-display:swap; }
+.tavixo-brand {
+  --tv-primary:#A3432F; --tv-primary-hover:#873524; --tv-ink:#24211F;
+  --tv-background:#FAF6EF; --tv-accent:#EAB766; --tv-muted:#70665F;
+  --tv-surface:#FFFFFF; --tv-border:#DED6CC; --tv-tint:#F2E3D9;
+  --tv-success:#246445; --tv-warning:#805100; --tv-danger:#B42318;
+  --tv-info:#2455A4; --tv-focus:#2563EB;
+  --tv-radius-field:8px; --tv-radius-button:10px; --tv-radius-card:16px;
+  --tv-space:4px; --tv-font:Manrope,Arial,sans-serif;
+  font-family:var(--tv-font); color:var(--tv-ink); background:var(--tv-background);
+}
+.tavixo-brand .tv-numeric { font-variant-numeric:tabular-nums lining-nums; }
+.tavixo-brand .tv-button { display:inline-flex; justify-content:center; align-items:center; min-height:44px; padding:12px 20px; border:1px solid var(--tv-primary); border-radius:var(--tv-radius-button); background:var(--tv-primary); color:white; font:700 15px/1.4 var(--tv-font); text-decoration:none; cursor:pointer; }
+.tavixo-brand .tv-button:hover { background:var(--tv-primary-hover); }
+.tavixo-brand .tv-button.secondary { color:var(--tv-ink); border-color:var(--tv-muted); background:var(--tv-surface); }
+.tavixo-brand :focus-visible { outline:3px solid var(--tv-focus); outline-offset:3px; }
+@media(prefers-reduced-motion:reduce) { .tavixo-brand * { transition:none!important; animation:none!important; } }
