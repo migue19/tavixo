@@ -140,9 +140,9 @@ export default function Home() {
               equipo en sincronía.
             </p>
             <div className="pilot">
-              Primer restaurante
+              Cada restaurante, su propio espacio.
               <br />
-              <strong>Birria El Cachanilla</strong>
+              <strong>Tu operación, en sincronía.</strong>
             </div>
           </div>
           <form onSubmit={login} className="card">
@@ -152,7 +152,10 @@ export default function Home() {
               Restaurante
               <input
                 name="restaurantSlug"
-                defaultValue="birria-el-cachanilla"
+                placeholder="Ej. mi-restaurante"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 required
                 maxLength={80}
               />
