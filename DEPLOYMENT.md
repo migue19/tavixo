@@ -7,7 +7,7 @@ Estado: acceso principal en https://tavixo.nut.com.mx desde el 26 de octubre de 
 ## Instalación
 
 - Directorio: `/opt/tavixo`.
-- Código de aplicación actual: `291ffd7` (Sprint 12, parche de seguridad, navegación/reportes visuales e identidad del restaurante). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
+- Código de aplicación actual: `85ab865` (Sprint 12, parche de seguridad, navegación/reportes visuales e identidad del restaurante). Ver [SECURITY_PATCH_RESULTS.md](SECURITY_PATCH_RESULTS.md).
 - Docker Compose con proyecto independiente `tavixo`.
 - API: `127.0.0.1:6000`; web: `127.0.0.1:6001`.
 - PostgreSQL 17.9 privado, sin puertos host publicados.
@@ -69,3 +69,7 @@ Exportación XLSX publicada con autorización, respaldo previo y actualización 
 ## Cambio de dirección — 26 de octubre de 2026
 
 Acceso principal `https://tavixo.nut.com.mx`; redirección 308 del dominio anterior conservando ruta y parámetros. Nuevo certificado DNS-01 con renovación simulada correctamente. Sólo API recreada para cambiar WEB_ORIGIN; web, PostgreSQL y servicios ajenos sin reinicios. 41 comprobaciones HTTPS aprobadas. Ver [DOMAIN_CHANGE_RESULTS.md](DOMAIN_CHANGE_RESULTS.md).
+
+## Identidad configurable — 26 de octubre de 2026
+
+Publicados editor de logo/colores e invitación inicial opcional. Incluye marca sugerida de Bill-Cochi-Nada y conserva Birria. Respaldo previo, migración aditiva y actualización exclusiva de API/web; 40 comprobaciones HTTPS aprobadas y datos de ambos pilotos preservados. Ver [BRANDING_SETTINGS_RESULTS.md](BRANDING_SETTINGS_RESULTS.md).

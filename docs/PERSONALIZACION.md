@@ -2,7 +2,7 @@
 
 ## Estado
 
-La configuración editable está implementada y verificada localmente. Su publicación requiere autorización específica porque incorpora una migración aditiva. La última alta de Bill-Cochi-Nada en producción utilizaba el tema genérico; esta entrega incluye su logo original extraído del menú, verde oscuro, crema y acento claro como valores sugeridos. Birria conserva su identidad negra/dorada.
+La configuración editable se publicó con autorización el 26 de octubre de 2026, con respaldo y migración aditiva. Incluye el logo original de Bill-Cochi-Nada extraído del menú, verde oscuro, crema y acento claro como valores sugeridos. Birria conserva su identidad negra/dorada. Ver BRANDING_SETTINGS_RESULTS.md para validaciones y límites.
 
 ## Uso
 
