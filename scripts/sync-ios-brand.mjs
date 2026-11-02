@@ -1,0 +1,10 @@
+import fs from 'node:fs';
+import sharp from 'sharp';
+const root='apps/ios/Tavixo/Resources';
+const icon=fs.readFileSync('marketing/marca/tavixo/assets/icon.svg','utf8').replace('rx="28"','rx="0"').replace('translate(16 16) scale(1.5)','translate(22.4 22.4) scale(1.3)');
+await sharp(Buffer.from(icon)).resize(1024,1024).flatten({background:'#A3432F'}).png().toFile(root+'/Assets.xcassets/AppIcon.appiconset/AppIcon.png');
+fs.writeFileSync(root+'/Assets.xcassets/AppIcon.appiconset/Contents.json',JSON.stringify({images:[{filename:'AppIcon.png',idiom:'universal',platform:'ios',size:'1024x1024'}],info:{author:'xcode',version:1}},null,2));
+fs.writeFileSync(root+'/Assets.xcassets/Contents.json',JSON.stringify({info:{author:'xcode',version:1}}));
+for(const scale of [1,2,3])await sharp('marketing/marca/tavixo/assets/logo-color.svg').resize(193*scale,48*scale).png().toFile(root+`/Assets.xcassets/BrandLogo.imageset/logo-${scale}x.png`);
+fs.writeFileSync(root+'/Assets.xcassets/BrandLogo.imageset/Contents.json',JSON.stringify({images:[1,2,3].map(scale=>({filename:`logo-${scale}x.png`,idiom:'universal',scale:`${scale}x`})),info:{author:'xcode',version:1}},null,2));
+fs.copyFileSync('marketing/marca/tavixo/fonts/Manrope-Variable.ttf',root+'/Manrope-Variable.ttf');fs.copyFileSync('marketing/marca/tavixo/fonts/OFL.txt',root+'/Manrope-OFL.txt');

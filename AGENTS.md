@@ -12,6 +12,7 @@
 - Derivar restaurante y permisos de la membresía autenticada vigente. Validar rol y sucursal en servidor; nunca confiar en tenant, precio, importe o permisos enviados por el navegador.
 - Dinero en centavos enteros; reportes por America/Mexico_City. Preservar precios/nombres históricos, auditoría y reconciliación efectivo/tarjeta.
 - Conservar transacciones, bloqueo compartido, revisiones esperadas e idempotencia de cobros, rondas, cancelaciones y caja. Cubrir concurrencia si se modifica ese flujo.
+- iOS nativo en `apps/ios/`, SwiftUI iOS 17+. XcodeGen `project.yml` y `.xcodeproj` versionados; regenerar ambos coherentemente. Keychain para refresh, JWT sólo en memoria; URLSession sin caché/cookies compartidas, HTTPS y sin redirecciones. Demo Debug ficticia; no usar clientes reales para pruebas. Ver `apps/ios/README.md` y `docs/IOS.md`.
 - JWT de acceso y refresh rotatorio en cookie segura. No exponer tokens ni secretos en UI, logs, pruebas, documentación ni Git.
 - Cargas de archivos: reutilizar `apps/web/app/components/file-upload.tsx` para ofrecer arrastrar y soltar y selección con botón/teclado, manteniendo formatos, límites y validación del servidor.
 - PWA requiere conexión para operar. Tarjetas se cobran en terminal externa; Tavixo registra el resultado. Tickets operativos no son CFDI. No prometer offline, integración bancaria o funciones pendientes.

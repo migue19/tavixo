@@ -391,3 +391,8 @@ Disponible en producción desde el 26 de octubre de 2026: configuración por res
 ## Identidad Tavixo
 
 Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/crema, tipografía, tokens y aplicaciones. Dirección visual aprobada; integración en acceso, fuente, PWA y paleta genérica publicada el 27 de octubre de 2026. Las identidades de los pilotos se conservan. Ver [docs/IDENTIDAD_TAVIXO.md](docs/IDENTIDAD_TAVIXO.md).
+
+
+## App nativa iOS
+
+Primera entrega SwiftUI en [apps/ios](apps/ios/README.md): acceso con sesión en Keychain, inicio, sucursales, mesas y consulta de comandas. Proyecto Xcode y demo ficticia incluidos. Es una base nativa de consulta; toma de pedidos y cobros llegarán en siguientes etapas. No altera los servicios publicados. Ver [docs/IOS.md](docs/IOS.md).
