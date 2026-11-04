@@ -397,6 +397,6 @@ Guía de diseño v1 con logo vectorial, construcción, paleta terracota/carbón/
 
 Primera entrega SwiftUI en [apps/ios](apps/ios/README.md): acceso con sesión en Keychain, inicio, sucursales, mesas y consulta de comandas. Proyecto Xcode y demo ficticia incluidos. Es una base nativa de consulta; toma de pedidos y cobros llegarán en siguientes etapas. No altera los servicios publicados. Ver [docs/IOS.md](docs/IOS.md).
 
-## iOS nativo 0.2.0
+## iOS nativo 0.2.1
 
 La app SwiftUI en `apps/ios/` permite consultar mesas/comandas, tomar pedidos desde mesas libres y agregar nuevas rondas con notas, revisión y recuperación de envíos inciertos. Conserva el Team de Apple configurado por el propietario. Ver [guía iOS](docs/IOS.md) y [resultados de pedidos](IOS_ORDERS_RESULTS.md). No requiere desplegar cambios de API/web.

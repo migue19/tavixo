@@ -165,6 +165,7 @@ struct OrderDetailView: View {
                 ForEach(current.items.filter { $0.remaining > 0 }) { item in
                     VStack(alignment:.leading,spacing:8) {
                         HStack(alignment:.top) { Text("\(item.remaining) × \(item.name)"); Spacer(); if showMoney { Text(money(item.remaining * item.unitPriceCents)).monospacedDigit() } }
+                        if showMoney { Text("Precio unitario: \(money(item.unitPriceCents))").font(.subheadline).foregroundStyle(.secondary) }
                         if let notes = item.notes, !notes.isEmpty { Text(notes).font(.callout).foregroundStyle(.secondary) }
                         if item.cancelledQuantity > 0 { Text("\(item.cancelledQuantity) cancelados").font(.caption).foregroundStyle(.secondary) }
                     }.padding(.vertical,4)

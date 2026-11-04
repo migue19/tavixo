@@ -28,10 +28,15 @@ final class TavixoUITests: XCTestCase {
         XCTAssertTrue(newOrder.waitForExistence(timeout:5)); newOrder.tap()
         let addProduct=app.buttons["add-00000000-0000-4000-8000-000000000010"]
         XCTAssertTrue(addProduct.waitForExistence(timeout:5)); addProduct.tap(); addProduct.tap()
-        app.buttons["review-order"].tap()
         let note=app.descendants(matching:.any).matching(identifier:"line-note-00000000-0000-4000-8000-000000000010").firstMatch
         XCTAssertTrue(note.waitForExistence(timeout:5)); note.tap(); note.typeText("Sin cebolla")
-        app.swipeUp()
+        app.buttons["review-order"].tap()
+        XCTAssertTrue(app.descendants(matching:.any).matching(identifier:"unit-price-00000000-0000-4000-8000-000000000010").firstMatch.waitForExistence(timeout:5))
+        let unit=app.descendants(matching:.any).matching(identifier:"unit-price-00000000-0000-4000-8000-000000000010").firstMatch
+        let subtotal=app.descendants(matching:.any).matching(identifier:"line-subtotal-00000000-0000-4000-8000-000000000010").firstMatch
+        XCTAssertTrue((unit.value as? String ?? "").contains("120.00"))
+        XCTAssertEqual(subtotal.label,"Subtotal de 2 unidades")
+        XCTAssertTrue((subtotal.value as? String ?? "").contains("240.00"))
         // Review the selection before confirming; no live customer data or HTTP requests.
         for _ in 0..<5 {
             if app.buttons["send-order"].isHittable { break }; app.swipeUp()

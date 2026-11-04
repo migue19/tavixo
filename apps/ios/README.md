@@ -1,4 +1,4 @@
-# Tavixo para iOS — pedidos y rondas (0.2.0)
+# Tavixo para iOS — pedidos y rondas (0.2.1)
 
 App SwiftUI para iPhone y iPad, iOS 17 o posterior. Proyecto Xcode incluido, sin paquetes externos de Swift. Identificador provisional: `mx.com.nut.tavixo`.
 
@@ -81,7 +81,7 @@ Las mesas se consideran ocupadas por sus cuentas abiertas; una mesa inactiva nun
 
 1. En **Mesas**, elige **Tomar pedido** en una mesa activa y libre. En una cuenta abierta, usa **Agregar otra ronda** en su detalle.
 2. Busca o filtra el menú. Sólo se ofrecen productos activos/disponibles de categorías activas. Cada pulsación en + aumenta la cantidad; máximo 100 por producto y 100 líneas por envío. La API limita además cada cuenta a 100 líneas acumuladas entre sus rondas, incluidos los snapshots previos.
-3. Pulsa **Revisar pedido**, ajusta cantidades y notas (300 caracteres por producto, 500 generales), o vuelve al menú para agregar más. El estimado usa precios del menú; el servidor fija los importes definitivos.
+3. Al agregar un producto aparece **Nota para este producto** directamente en el menú. Es opcional y aplica a todas sus unidades en ese envío. Pulsa **Revisar pedido** para ver precio unitario y subtotal por producto, ajustar cantidades y notas (300 caracteres por producto, 500 generales), o vuelve al menú para agregar más. El estimado usa precios del menú; el servidor fija los importes definitivos.
 4. Confirma el envío y espera la confirmación con número de comanda y total vigente. Una ronda envía el total de cuenta esperado y no modifica productos anteriores. No se realiza ningún cobro.
 5. Si hay un envío pendiente, usa **Recuperar envío pendiente** y **Reintentar mismo envío**. No se reenvía automáticamente al recuperar conexión; no cambies de cuenta ni abras otra para sustituirlo. Se bloquea el cambio de sucursal y un segundo pedido mientras existe ese envío. Puedes cerrar la pantalla conservándolo.
 6. Un rechazo definitivo inicial por mesa ocupada, producto no disponible o cuenta modificada exige actualizar y revisar desde la mesa/cuenta antes de iniciar otro envío. Un reintento de una operación incierta conserva su referencia incluso si luego el servidor deniega permisos; debe resolverlo el usuario original o soporte con comprobación en servidor. La app no ofrece un borrado que pueda ocultar un pedido ya recibido.

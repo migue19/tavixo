@@ -59,17 +59,23 @@ struct OrderComposerView: View {
                             }
                             if visibleProducts.isEmpty && !loading { Text("No hay productos disponibles con este filtro.").foregroundStyle(.secondary) }
                             ForEach(visibleProducts) { product in
-                                HStack {
-                                    VStack(alignment:.leading,spacing:5) {
-                                        Text(product.name).fontWeight(.semibold)
-                                        if !product.description.isEmpty { Text(product.description).font(.caption).foregroundStyle(.secondary) }
-                                        Text(money(product.priceCents)).font(.subheadline)
+                                VStack(alignment:.leading,spacing:12) {
+                                    HStack {
+                                        VStack(alignment:.leading,spacing:5) {
+                                            Text(product.name).fontWeight(.semibold)
+                                            if !product.description.isEmpty { Text(product.description).font(.caption).foregroundStyle(.secondary) }
+                                            Text("Precio unitario: \(money(product.priceCents))").font(.subheadline)
+                                        }
+                                        Spacer()
+                                        Button { add(product) } label: { Image(systemName:"plus.circle.fill").font(.title2) }
+                                            .buttonStyle(.borderless).accessibilityLabel("Agregar \(product.name)").accessibilityIdentifier("add-\(product.id)")
+                                            .disabled(lines.count >= 100 && !lines.contains { $0.productId == product.id } || lines.first { $0.productId == product.id }?.quantity == 100)
                                     }
-                                    Spacer()
-                                    Button { add(product) } label: { Image(systemName:"plus.circle.fill").font(.title2) }
-                                        .buttonStyle(.borderless).accessibilityLabel("Agregar \(product.name)").accessibilityIdentifier("add-\(product.id)")
-                                        .disabled(lines.count >= 100 && !lines.contains { $0.productId == product.id } || lines.first { $0.productId == product.id }?.quantity == 100)
-                                }
+                                    if let line = lines.first(where: { $0.productId == product.id }) {
+                                        Stepper("En tu pedido: \(line.quantity)",value:quantityBinding(product.id),in:1...100)
+                                        productNote(line)
+                                    }
+                                }.padding(.vertical,6)
                             }
                             Button("Actualizar menú") { Task { await load() } }.disabled(loading)
                         }
@@ -80,13 +86,21 @@ struct OrderComposerView: View {
                             ForEach(currentLines,id:\.productId) { line in
                                 VStack(alignment:.leading,spacing:10) {
                                     Text(products.first { $0.id == line.productId }?.name ?? "Producto del envío pendiente").font(.headline)
+                                    if let product = products.first(where: { $0.id == line.productId }) {
+                                        LabeledContent("Precio unitario",value:money(product.priceCents)).font(.subheadline)
+                                            .accessibilityElement(children:.ignore).accessibilityLabel("Precio unitario").accessibilityValue(money(product.priceCents))
+                                            .accessibilityIdentifier("unit-price-\(line.productId)")
+                                        LabeledContent("Subtotal · \(line.quantity) unidades",value:money(product.priceCents * line.quantity)).font(.subheadline.bold())
+                                            .accessibilityElement(children:.ignore).accessibilityLabel("Subtotal de \(line.quantity) unidades").accessibilityValue(money(product.priceCents * line.quantity))
+                                            .accessibilityIdentifier("line-subtotal-\(line.productId)")
+                                        if pending != nil { Text("Referencia del menú actual; el total confirmado lo determina el servidor.").font(.caption).foregroundStyle(.secondary) }
+                                    }
                                     if frozen {
                                         Text("Cantidad: \(line.quantity)")
                                         if !line.notes.isEmpty { Text(line.notes).font(.callout) }
                                     } else {
                                         Stepper("Cantidad: \(line.quantity)",value:quantityBinding(line.productId),in:1...100)
-                                        TextField("Nota: sin cebolla, término…",text:noteBinding(line.productId),axis:.vertical).accessibilityIdentifier("line-note-\(line.productId)")
-                                        if line.notes.utf16.count > 300 { Text("Máximo 300 caracteres por producto.").font(.caption).foregroundStyle(.red) }
+                                        productNote(line)
                                         Button("Quitar producto",role:.destructive) { lines.removeAll { $0.productId == line.productId } }.buttonStyle(.borderless)
                                     }
                                 }.padding(.vertical,6)
@@ -136,6 +150,17 @@ struct OrderComposerView: View {
             .interactiveDismissDisabled(store.sendingOrder || (!lines.isEmpty && pending == nil && completed == nil))
             .task { await load() }
             .privacySensitive()
+        }
+    }
+    private func productNote(_ line: OrderLineInput) -> some View {
+        VStack(alignment:.leading,spacing:6) {
+            Label("Nota para este producto",systemImage:"square.and.pencil").font(.subheadline.weight(.semibold))
+            TextField("Ej. sin cebolla o bien cocido",text:noteBinding(line.productId),axis:.vertical)
+                .lineLimit(2...4).padding(10).background(Color.primary.opacity(0.04),in:RoundedRectangle(cornerRadius:10))
+                .accessibilityLabel("Nota para \(products.first { $0.id == line.productId }?.name ?? "este producto")")
+                .accessibilityIdentifier("line-note-\(line.productId)")
+            Text(line.notes.utf16.count > 300 ? "Máximo 300 caracteres por producto." : "Opcional · aplica a todas las unidades de este producto en el envío.")
+                .font(.caption).foregroundStyle(line.notes.utf16.count > 300 ? Color.red : Color.secondary)
         }
     }
     private func quantityBinding(_ id: String) -> Binding<Int> {
