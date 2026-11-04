@@ -18,7 +18,7 @@ enum BrandTheme {
     }
 }
 struct BrandWordmark: View {
-    var body: some View { Image("BrandLogo").resizable().scaledToFit().frame(width:193,height:48).accessibilityLabel("Tavixo") }
+    var body: some View { Image("BrandLogo").resizable().scaledToFit().frame(maxWidth:193).frame(height:48).accessibilityLabel("Tavixo") }
 }
 struct StatusPill: View {
     let order: RestaurantOrder
@@ -36,12 +36,50 @@ struct RestaurantAvatar: View {
         Group {
             if let raw = restaurant.branding?.logo, raw.hasPrefix("data:image/png;base64,"), raw.count <= 350000,
                let data = Data(base64Encoded:String(raw.dropFirst("data:image/png;base64,".count))), let image = UIImage(data:data) {
-                Image(uiImage:image).resizable().scaledToFit()
+                fitted(Image(uiImage:image))
             } else if let raw = restaurant.branding?.logo, raw.hasPrefix("/branding/"), !raw.contains(".."),
                       let url = URL(string:raw,relativeTo:APIClient.productionURL), url.host == APIClient.productionURL.host {
-                AsyncImage(url:url) { image in image.resizable().scaledToFit() } placeholder: { fallback }
+                AsyncImage(url:url) { phase in
+                    if let image = phase.image { fitted(image) } else { fallback }
+                }
             } else { fallback }
-        }.frame(width:54,height:54).padding(6).background(.white,in:RoundedRectangle(cornerRadius:12)).accessibilityLabel("Logo de \(restaurant.name)")
+        }.frame(width:54,height:54).clipped().padding(6).background(.white,in:RoundedRectangle(cornerRadius:12)).clipShape(RoundedRectangle(cornerRadius:12)).accessibilityIdentifier("restaurant-logo").accessibilityLabel("Logo de \(restaurant.name)")
+    }
+    private func fitted(_ image: Image) -> some View {
+        image.resizable().scaledToFit().frame(width:54,height:54).clipped()
     }
     private var fallback: some View { Image(systemName:"fork.knife").font(.title2).foregroundStyle(BrandTheme.primary) }
+}
+
+// A non-cancelling window recognizer sees taps on Form cells as well as empty space.
+// Text input keeps its own taps/caret/selection; the marker limits this to its screen.
+struct KeyboardDismissArea: UIViewRepresentable {
+    func makeUIView(context: Context) -> KeyboardDismissMarker { KeyboardDismissMarker() }
+    func updateUIView(_ uiView: KeyboardDismissMarker, context: Context) {}
+}
+final class KeyboardDismissMarker: UIView, UIGestureRecognizerDelegate {
+    private weak var installedWindow: UIWindow?
+    private lazy var tap: UITapGestureRecognizer = {
+        let recognizer = UITapGestureRecognizer(target:self,action:#selector(dismissKeyboard))
+        recognizer.cancelsTouchesInView = false
+        recognizer.delegate = self
+        return recognizer
+    }()
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        installedWindow?.removeGestureRecognizer(tap)
+        installedWindow = window
+        window?.addGestureRecognizer(tap)
+    }
+    @objc private func dismissKeyboard() { window?.endEditing(true) }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard bounds.contains(touch.location(in:self)) else { return false }
+        var view = touch.view
+        while let current = view {
+            if current is UITextField || current is UITextView { return false }
+            view = current.superview
+        }
+        return true
+    }
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }
 }

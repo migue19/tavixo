@@ -37,7 +37,7 @@ struct LoginView: View {
                     Text("Ayudar a los restaurantes a trabajar con más orden, visibilidad y confianza, desde la primera comanda hasta el cierre de caja.")
                 }.foregroundStyle(BrandTheme.muted).padding(.bottom,28)
             }.padding(.horizontal,24).frame(maxWidth:560).frame(maxWidth:.infinity)
-        }.background(BrandTheme.cream).scrollDismissesKeyboard(.interactively)
+        }.background(BrandTheme.cream).background(KeyboardDismissArea()).scrollDismissesKeyboard(.interactively)
     }
     private func entry<Content: View>(_ title: String, @ViewBuilder field: () -> Content) -> some View {
         VStack(alignment:.leading,spacing:8) { Text(title).font(.subheadline.weight(.semibold)); field().padding(14).background(BrandTheme.cream,in:RoundedRectangle(cornerRadius:10)).overlay(RoundedRectangle(cornerRadius:10).stroke(BrandTheme.muted.opacity(0.5))) }

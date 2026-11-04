@@ -1,4 +1,4 @@
-# Tavixo para iOS — pedidos y rondas (0.2.1)
+# Tavixo para iOS — pedidos y rondas (0.2.2)
 
 App SwiftUI para iPhone y iPad, iOS 17 o posterior. Proyecto Xcode incluido, sin paquetes externos de Swift. Identificador provisional: `mx.com.nut.tavixo`.
 
@@ -91,3 +91,11 @@ Los borradores **sin enviar** sólo viven en memoria: al cancelarlos se pide con
 ## Próxima entrega
 
 Cocina interactiva y cobros, reutilizando revisiones, snapshots e idempotencia de la API. No deben agregarse escrituras que cambien importes calculados por servidor o ignoren cambios de rol/sucursal.
+
+## Teclado y logo (0.2.2)
+
+En las notas puedes cerrar el teclado tocando fuera del campo, deslizando la lista o pulsando **Ocultar teclado**. Tocar dentro del campo conserva la edición y la nota no se borra al ocultarlo. El acceso también permite tocar fuera para cerrar su teclado. El logo del restaurante se ajusta proporcionalmente a un área de 54 × 54 puntos, con margen y borde redondeado (66 × 66 exterior); horizontal, vertical o cuadrado, sin deformarse ni salirse. Se conserva el logo completo, por lo que puede quedar espacio libre según su proporción.
+
+## Declaración de cifrado para distribución
+
+`ITSAppUsesNonExemptEncryption` está en **false (NO)**, tanto en `project.yml` como en el `Info.plist` generado. La app actual usa cifrado del sistema mediante HTTPS/URLSession y Keychain, sin librerías de cifrado externas ni algoritmos propios en el cliente. Apple documenta esta declaración para cifrado exento: [documentación oficial](https://developer.apple.com/documentation/bundleresources/information-property-list/itsappusesnonexemptencryption). Se aplica al próximo Archive/build que se suba; no modifica binarios ya subidos a App Store Connect. Revisar la clasificación si se agregan SDK o cifrado distinto en el futuro.

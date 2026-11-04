@@ -30,6 +30,13 @@ final class TavixoUITests: XCTestCase {
         XCTAssertTrue(addProduct.waitForExistence(timeout:5)); addProduct.tap(); addProduct.tap()
         let note=app.descendants(matching:.any).matching(identifier:"line-note-00000000-0000-4000-8000-000000000010").firstMatch
         XCTAssertTrue(note.waitForExistence(timeout:5)); note.tap(); note.typeText("Sin cebolla")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
+        app.staticTexts["Nota para este producto"].firstMatch.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout:5))
+        note.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout:5))
+        app.buttons["dismiss-keyboard"].tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout:5))
         app.buttons["review-order"].tap()
         XCTAssertTrue(app.descendants(matching:.any).matching(identifier:"unit-price-00000000-0000-4000-8000-000000000010").firstMatch.waitForExistence(timeout:5))
         let unit=app.descendants(matching:.any).matching(identifier:"unit-price-00000000-0000-4000-8000-000000000010").firstMatch

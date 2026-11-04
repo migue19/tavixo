@@ -1,6 +1,6 @@
 # App nativa iOS
 
-Versión **0.2.1 · notas y precios visibles**, 4 de noviembre de 2026. SwiftUI para iPhone/iPad iOS 17+, en `apps/ios/`. No se modificó ni desplegó backend ni web.
+Versión **0.2.2 · teclado y ajuste del logo**, 4 de noviembre de 2026. SwiftUI para iPhone/iPad iOS 17+, en `apps/ios/`. No se modificó ni desplegó backend ni web.
 
 [Instrucciones completas](../apps/ios/README.md) · [Proyecto Xcode](../apps/ios/Tavixo.xcodeproj/project.pbxproj) · [Resultados de pedidos](../IOS_ORDERS_RESULTS.md) · [Primera entrega](../IOS_RESULTS.md).
 
@@ -15,3 +15,7 @@ El propietario confirmó login y consulta de la versión 0.1.0 en iPhone físico
 Pendientes: actualización interactiva de cocina, cobros, tickets, reportes, cambio de restaurante dentro de sesión y administración. Para otro restaurante se cierra sesión y se ingresa con su identificador/cuenta; los pendientes inciertos deben resolverse con su usuario original. También falta auditoría completa de VoiceOver/tamaños extremos y distribución.
 
 En 0.2.1, al seleccionar un producto se muestra su cantidad y el campo etiquetado **Nota para este producto** directamente en el menú. La revisión conserva la nota y muestra precio unitario y subtotal de cada línea; el detalle confirmado también muestra el precio unitario histórico del servidor. Los precios de borrador son una referencia del menú: el servidor confirma los importes.
+
+En 0.2.2 se cierra el teclado al tocar fuera de un campo de notas o con **Ocultar teclado**, conservando el texto. El acceso admite también el gesto exterior. Los logos locales/remotos tienen un área fija, ajuste proporcional y borde contenido; la marca Tavixo admite ancho disponible reducido.
+
+Distribución: `ITSAppUsesNonExemptEncryption = false` en Info.plist y XcodeGen para el uso actual de cifrado del sistema. Debe generarse/subirse un nuevo Archive para que la declaración llegue a App Store Connect; no se realizó ninguna publicación desde esta tarea.

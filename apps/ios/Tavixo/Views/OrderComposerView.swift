@@ -128,6 +128,7 @@ struct OrderComposerView: View {
                     }
                 }
             }
+            .background(KeyboardDismissArea())
             .scrollDismissesKeyboard(.interactively)
             .safeAreaInset(edge:.bottom) {
                 if !reviewing && !frozen {
@@ -138,7 +139,13 @@ struct OrderComposerView: View {
             }
             .navigationTitle(target.orderID == nil ? "Tomar pedido" : "Agregar ronda")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement:.cancellationAction) {
+            .toolbar {
+                ToolbarItemGroup(placement:.keyboard) {
+                    Spacer()
+                    Button("Ocultar teclado") { UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),to:nil,from:nil,for:nil) }
+                        .accessibilityIdentifier("dismiss-keyboard")
+                }
+                ToolbarItem(placement:.cancellationAction) {
                 Button(completed != nil ? "Cerrar" : pending != nil ? "Cerrar y conservar" : "Cancelar") {
                     if completed != nil || pending != nil || lines.isEmpty { dismiss() } else { discard = true }
                 }.disabled(store.sendingOrder)

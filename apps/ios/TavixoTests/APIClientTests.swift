@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import SwiftUI
 @testable import Tavixo
 
 private final class MemorySecrets: SecretStore {
@@ -350,6 +351,37 @@ final class APIClientTests: XCTestCase {
         XCTAssertFalse(store.canTakeOrders); XCTAssertFalse(store.canStartOrder)
         StubProtocol.handler = { _ in XCTFail("Kitchen must not send writes"); return (201,[:],Data()) }
         do { _ = try await store.sendOrder(target:OrderTarget(tableID:testTable,tableName:"Mesa",orderID:nil,expectedTotalCents:nil),items:[OrderLineInput(productId:testProduct,quantity:1,notes:"")],notes:"",branchID:testBranch,context:store.session!.context); XCTFail("Expected denial") } catch APIError.contextChanged {}
+    }
+
+    @MainActor func testWideAndTallRestaurantLogosFitInsideTheirContainer() throws {
+        for size in [CGSize(width:300,height:60), CGSize(width:60,height:300), CGSize(width:100,height:100)] {
+            let fixture = UIGraphicsImageRenderer(size:size).image { ctx in
+                UIColor.red.setFill(); ctx.fill(CGRect(origin:.zero,size:size))
+            }
+            let raw = "data:image/png;base64," + (try XCTUnwrap(fixture.pngData())).base64EncodedString()
+            let restaurant = Restaurant(id:"fixture",name:"Logo ficticio",slug:"fixture",branding:RestaurantBrand(primary:"A3432F",accent:"EAB766",surface:"FAF6EF",logo:raw))
+            let renderer = ImageRenderer(content:RestaurantAvatar(restaurant:restaurant).environment(\.colorScheme,.light))
+            renderer.scale = 1
+            let image = try XCTUnwrap(renderer.uiImage)
+            XCTAssertEqual(image.size.width,66,accuracy:0.5); XCTAssertEqual(image.size.height,66,accuracy:0.5)
+            var pixels = [UInt8](repeating:0,count:66 * 66 * 4)
+            let bitmap = try XCTUnwrap(CGContext(data:&pixels,width:66,height:66,bitsPerComponent:8,bytesPerRow:66*4,space:CGColorSpaceCreateDeviceRGB(),bitmapInfo:CGImageAlphaInfo.premultipliedLast.rawValue))
+            bitmap.draw(try XCTUnwrap(image.cgImage),in:CGRect(x:0,y:0,width:66,height:66))
+            var xs:[Int] = [], ys:[Int] = []
+            for y in 0..<66 { for x in 0..<66 {
+                let i=(y*66+x)*4
+                if pixels[i] > 200 && pixels[i+1] < 60 && pixels[i+2] < 60 { xs.append(x); ys.append(y) }
+            } }
+            let width = try XCTUnwrap(xs.max()) - XCTUnwrap(xs.min()) + 1
+            let height = try XCTUnwrap(ys.max()) - XCTUnwrap(ys.min()) + 1
+            // Pixel thresholding rounds the thin edge (10.8 pt) to 10/11 pixels.
+            let longest = max(size.width,size.height)
+            XCTAssertEqual(Double(width),Double(54 * size.width / longest),accuracy:1)
+            XCTAssertEqual(Double(height),Double(54 * size.height / longest),accuracy:1)
+            XCTAssertLessThanOrEqual(width,54); XCTAssertLessThanOrEqual(height,54)
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(xs.min()),6)
+            XCTAssertGreaterThanOrEqual(try XCTUnwrap(ys.min()),6)
+        }
     }
 
 }
