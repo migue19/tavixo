@@ -28,6 +28,7 @@ El compositor captura el contexto inicial; cambios de restaurante/usuario/rol/su
 - Compilación Debug de simulador y Release para SDK iPhone aprobadas. Release se compiló sin firma/instalación; no equivale a distribución.
 - Capturas reales de simuladores inspeccionadas: `outputs/ios/Tavixo-iPhone-pedido.png`, `Tavixo-iPhone-segunda-ronda.png`, `Tavixo-iPad-pedido.png` y `Tavixo-iPad-segunda-ronda.png`.
 - Firma ad hoc local para simulador. La primera ejecución sin acceso a los servicios de Xcode no pudo compilar/descubrir dispositivos; repetida con el acceso local correspondiente. El ejecutor UI del primer intento iPad terminó antes de conectar; repetido sin paralelismo con las 27 pruebas y los dos recorridos aprobados.
+- Una repetición adicional dirigida a notas en iPhone y al aislamiento del llavero de una prueba no inició el ejecutor y se detuvo; no se cuenta como aprobada. La escritura de notas se verificó en iPad; apertura/rondas y navegación ya habían pasado en iPhone. El único cambio posterior a la suite completa es usar almacenamiento ficticio también para el pendiente en la prueba de demo/login.
 - No se repitieron pruebas web/API porque su código y sus contratos no cambiaron. No se inició sesión ni se registraron escrituras en producción durante esta implementación.
 
 Registros privados: `work/ios-orders-unit-signed.log`, `work/ios-orders-phone-tests.log`, `work/ios-orders-ipad-tests.log`, `work/ios-orders-ipad-final.log`, `work/ios-orders-device-final.log` y resultados xcresult bajo `work/`.
