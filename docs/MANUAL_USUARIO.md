@@ -202,3 +202,9 @@ La identidad aprobada de Tavixo utiliza un símbolo de X abierta, colores terrac
 
 
 La página de acceso incluye **¿Por qué Tavixo?**, debajo del formulario, con la explicación del nombre y nuestro objetivo. El enlace **Conoce por qué nos llamamos Tavixo** lleva directamente a esa sección. Al iniciar sesión se muestra el espacio de tu restaurante.
+
+## App iPhone y iPad · pedidos nativos (0.2.0)
+
+En **Mesas → Tomar pedido**, selecciona productos del menú y pulsa **Revisar pedido**. Ajusta cantidades, agrega indicaciones por producto o generales y confirma el envío. Espera la confirmación con número de comanda. Desde el detalle de una cuenta abierta, **Agregar otra ronda** permite enviar más productos sin abrir otra cuenta. Disponible para propietario, gerente, caja y mesero; cocina sólo consulta en esta versión.
+
+Si aparece **Recuperar envío pendiente**, reintenta ese mismo envío. No abras otra cuenta para reemplazarlo: puede haber llegado al restaurante aunque no recibieras la confirmación. El envío iniciado queda protegido en el llavero local y se recupera con el mismo usuario/restaurante; otro pedido y el cambio de sucursal quedan bloqueados hasta resolverlo. Los borradores sin enviar no se guardan al cerrar la app. Requiere internet; no registra cobros desde iOS todavía. Ver [guía iOS](IOS.md).

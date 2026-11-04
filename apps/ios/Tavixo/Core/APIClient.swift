@@ -1,9 +1,13 @@
 import Foundation
 
 enum APIError: Error, LocalizedError {
+    case conflict, invalidInput, contextChanged
     case unauthorized, forbidden, credentials, rateLimited, server, network, invalidResponse, storage, insecureURL
     var errorDescription: String? {
         switch self {
+        case .conflict: "La cuenta o la mesa cambió. Actualiza y revisa antes de enviar de nuevo."
+        case .invalidInput: "Revisa el pedido: algún producto puede estar agotado, inactivo o fuera de los límites permitidos."
+        case .contextChanged: "Cambió tu acceso. Abre de nuevo el pedido con la sesión actual."
         case .unauthorized: "La sesión terminó. Vuelve a iniciar sesión."
         case .forbidden: "Tu cuenta no tiene permiso para esta operación."
         case .credentials: "Revisa tu restaurante, correo y contraseña."
@@ -75,6 +79,8 @@ private final class RefuseRedirects: NSObject, URLSessionTaskDelegate, @unchecke
         case 200..<300: return
         case 400 where login: throw APIError.credentials
         case 401: throw login ? APIError.credentials : APIError.unauthorized
+        case 400, 404, 422: throw APIError.invalidInput
+        case 409: throw APIError.conflict
         case 403: throw APIError.forbidden
         case 429: throw APIError.rateLimited
         default: throw APIError.server
@@ -140,6 +146,17 @@ private final class RefuseRedirects: NSObject, URLSessionTaskDelegate, @unchecke
         if response.statusCode == 401 { clearSession(); try secrets.clear() }
         try check(response)
         do { return try JSONDecoder().decode(T.self,from:data) } catch { throw APIError.invalidResponse }
+    }
+    // A mutation is sent once. Explicit retries keep the original persisted UUID/body.
+    func post<Body: Encodable, Result: Decodable>(_ path: String, body: Body, context: String, as type: Result.Type) async throws -> Result {
+        if session == nil || expiry.timeIntervalSinceNow < 45 { _ = try await renew() }
+        guard session?.context == context, let token = session?.accessToken else { throw APIError.contextChanged }
+        let encoded = try JSONEncoder().encode(body)
+        let (data, response) = try await send(request(path, method:"POST", body:encoded, token:token))
+        if response.statusCode == 401 { clearSession(); try secrets.clear() }
+        try check(response)
+        guard session?.context == context else { throw APIError.contextChanged }
+        do { return try JSONDecoder().decode(Result.self, from:data) } catch { throw APIError.invalidResponse }
     }
     func logout() async throws {
         // Wait for rotation so logout revokes the current cookie, not an old one.

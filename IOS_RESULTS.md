@@ -1,5 +1,7 @@
 # App nativa iOS — primera entrega
 
+> Registro histórico de 0.1.0. La entrega actual de pedidos/rondas es [iOS 0.2.0](IOS_ORDERS_RESULTS.md). El propietario confirmó después login/consulta en iPhone físico y configuró su Team; consultar el registro más reciente.
+
 Fecha: 2 de noviembre de 2026. Proyecto SwiftUI en `apps/ios/`; bundle provisional `mx.com.nut.tavixo`, versión 0.1.0. Sin despliegues ni cambios de API/web, datos o VPS.
 
 ## Alcance implementado

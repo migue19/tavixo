@@ -20,4 +20,41 @@ final class TavixoUITests: XCTestCase {
         XCTAssertEqual(app.textFields["restaurant-field"].value as? String,"Ej. mi-restaurante")
         let login=XCTAttachment(screenshot:app.screenshot()); login.name="Acceso"; login.lifetime = .keepAlways; add(login)
     }
+    @MainActor func testCreateOrderAndSecondRoundInFictitiousDemo() {
+        let app=XCUIApplication(); app.launchArguments=["-tavixo-demo"]; app.launch()
+        XCTAssertTrue(app.staticTexts["DEMO LOCAL · datos ficticios"].waitForExistence(timeout:15))
+        app.buttons["Mesas"].firstMatch.tap()
+        let newOrder=app.buttons["new-order-table-3"]
+        XCTAssertTrue(newOrder.waitForExistence(timeout:5)); newOrder.tap()
+        let addProduct=app.buttons["add-00000000-0000-4000-8000-000000000010"]
+        XCTAssertTrue(addProduct.waitForExistence(timeout:5)); addProduct.tap(); addProduct.tap()
+        app.buttons["review-order"].tap()
+        let note=app.descendants(matching:.any).matching(identifier:"line-note-00000000-0000-4000-8000-000000000010").firstMatch
+        XCTAssertTrue(note.waitForExistence(timeout:5)); note.tap(); note.typeText("Sin cebolla")
+        app.swipeUp()
+        // Review the selection before confirming; no live customer data or HTTP requests.
+        for _ in 0..<5 {
+            if app.buttons["send-order"].isHittable { break }; app.swipeUp()
+        }
+        XCTAssertTrue(app.staticTexts["Cantidad: 2"].exists)
+        let preview=XCTAttachment(screenshot:app.screenshot()); preview.name="Pedido nativo demo"; preview.lifetime = .keepAlways; add(preview)
+        app.buttons["send-order"].tap(); app.buttons["Confirmar envío"].tap()
+        XCTAssertTrue(app.staticTexts["Comanda #14 confirmada"].waitForExistence(timeout:5))
+        app.buttons["order-done"].tap()
+        let order=app.staticTexts["Ver comanda #14"]
+        XCTAssertTrue(order.waitForExistence(timeout:5)); order.tap()
+        XCTAssertTrue(app.navigationBars["Comanda #14"].waitForExistence(timeout:5))
+        XCTAssertTrue(app.staticTexts["Sin cebolla"].exists)
+        app.buttons["add-round"].tap()
+        let water=app.buttons["add-00000000-0000-4000-8000-000000000011"]
+        XCTAssertTrue(water.waitForExistence(timeout:5)); water.tap()
+        app.buttons["review-order"].tap()
+        for _ in 0..<5 { if app.buttons["send-order"].isHittable { break }; app.swipeUp() }
+        app.buttons["send-order"].tap(); app.buttons["Confirmar envío"].tap()
+        XCTAssertTrue(app.staticTexts["Comanda #14 confirmada"].waitForExistence(timeout:5))
+        app.buttons["order-done"].tap()
+        XCTAssertTrue(app.staticTexts["1 × Agua fresca"].waitForExistence(timeout:5))
+        let detail=XCTAttachment(screenshot:app.screenshot()); detail.name="Cuenta con segunda ronda"; detail.lifetime = .keepAlways; add(detail)
+    }
+
 }

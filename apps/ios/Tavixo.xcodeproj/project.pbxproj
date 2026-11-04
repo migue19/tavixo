@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		458E85E975E7E1FAB7005EA7 /* TavixoUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 913580F99C809CB5DC886782 /* TavixoUITests.swift */; };
 		48AE4834320F17A83B3C8F5F /* Manrope-Variable.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 36DDB2D0C9FFC7422BBC259B /* Manrope-Variable.ttf */; };
+		4D37BF4885828F3ECC97657A /* OrderComposerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC040D756BB0FAB814F84B0E /* OrderComposerView.swift */; };
 		4D99D0DE55F0ACAAB10FEE6B /* SecretStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98775FEF60C1C0DFBA7E17A6 /* SecretStore.swift */; };
 		6D7B83E28ABE304550726B27 /* Manrope-OFL.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5BD43DAF6B5487B5AF752267 /* Manrope-OFL.txt */; };
 		6E29A12163C4D936AF057F24 /* TavixoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 128E8A4D2019C8F0ABCE4B7C /* TavixoApp.swift */; };
@@ -54,6 +55,7 @@
 		85DEF3EEB8AAD892AB3D7366 /* TavixoUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = TavixoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		913580F99C809CB5DC886782 /* TavixoUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TavixoUITests.swift; sourceTree = "<group>"; };
 		98775FEF60C1C0DFBA7E17A6 /* SecretStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecretStore.swift; sourceTree = "<group>"; };
+		AC040D756BB0FAB814F84B0E /* OrderComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderComposerView.swift; sourceTree = "<group>"; };
 		AD8DF0E3579D68299775862D /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		C4B2B1534DF7D3E22D6E4F50 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E081EF73216F864451358F40 /* APIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClientTests.swift; sourceTree = "<group>"; };
@@ -128,6 +130,7 @@
 			isa = PBXGroup;
 			children = (
 				0005AD33FCA117D035C5DB66 /* LoginView.swift */,
+				AC040D756BB0FAB814F84B0E /* OrderComposerView.swift */,
 				3967FF3B54379A6520149339 /* Theme.swift */,
 				555E50BAF5D6F3AFA91D9FDD /* WorkspaceView.swift */,
 			);
@@ -209,16 +212,16 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					6BBD875E0730F9A3FCF07AC5 = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = MC2W678MVZ;
 						ProvisioningStyle = Automatic;
 						TestTargetID = C753F524123B197BE095D46B;
 					};
 					AF65784D0601AE83D3A1131B = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = MC2W678MVZ;
 						ProvisioningStyle = Automatic;
 					};
 					C753F524123B197BE095D46B = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = MC2W678MVZ;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -267,6 +270,7 @@
 				7289FD29978C5DA50AE03CFB /* DemoData.swift in Sources */,
 				8A58F8BD19A195CE0937E974 /* LoginView.swift in Sources */,
 				90690EDD518136DC57BE4B3B /* Models.swift in Sources */,
+				4D37BF4885828F3ECC97657A /* OrderComposerView.swift in Sources */,
 				4D99D0DE55F0ACAAB10FEE6B /* SecretStore.swift in Sources */,
 				6E29A12163C4D936AF057F24 /* TavixoApp.swift in Sources */,
 				79E91C728269A7DA657B0270 /* Theme.swift in Sources */,
@@ -345,7 +349,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Tavixo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tavixo;
@@ -358,7 +362,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mx.com.nut.tavixo;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -401,7 +405,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = MC2W678MVZ;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -502,7 +506,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = MC2W678MVZ;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -531,7 +535,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Tavixo/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Tavixo;
@@ -544,7 +548,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mx.com.nut.tavixo;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
